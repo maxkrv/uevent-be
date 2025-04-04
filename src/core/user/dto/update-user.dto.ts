@@ -4,7 +4,6 @@ import {
   IsBoolean,
   IsNotEmpty,
   IsOptional,
-  IsPhoneNumber,
   IsString,
   MaxLength,
 } from 'class-validator';
@@ -16,11 +15,6 @@ export class UpdateUserDto {
   @IsNotEmpty()
   @MaxLength(120)
   name?: string;
-
-  @ApiProperty({ required: false, example: '+1234567890' })
-  @IsOptional()
-  @IsPhoneNumber()
-  phone?: string;
 
   @ApiProperty({ required: false, example: 'This is my bio' })
   @IsOptional()

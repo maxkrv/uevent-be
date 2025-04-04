@@ -23,7 +23,6 @@ export class UserService {
     role: true,
     sentNotifications: true,
     emailVerified: true,
-    phone: true,
   };
 
   async me(userId: string) {

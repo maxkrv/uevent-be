@@ -84,7 +84,6 @@ export class AuthService {
         password: hash,
         name: dto.name,
         emailVerified: false,
-        phone: dto.phone,
         bio: dto.bio,
         role: UserRole.USER,
         authProvider: AuthProviderType.EMAIL,

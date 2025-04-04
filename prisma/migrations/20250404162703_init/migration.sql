@@ -27,7 +27,6 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "avatar" TEXT,
     "bio" TEXT,
-    "phone" TEXT,
     "auth_provider" "AuthProviderType" NOT NULL DEFAULT 'EMAIL',
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "email_verified" BOOLEAN NOT NULL DEFAULT false,

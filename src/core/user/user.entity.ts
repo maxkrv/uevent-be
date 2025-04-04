@@ -29,8 +29,6 @@ export class UserDescription implements IUser {
   avatar: string;
   @ApiProperty({ example: 'Well well well' })
   bio: string;
-  @ApiProperty({ example: '+3800000000000' })
-  phone: string;
   @ApiProperty({ enum: UserRole })
   role: UserRole;
   @ApiProperty({ example: true })

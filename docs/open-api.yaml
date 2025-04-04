@@ -1,0 +1,2663 @@
+openapi: 3.0.3
+info:
+  title: Uevent API
+  description: |
+    API documentation for the Event Sharing Platform (Uevent).
+
+    This API allows users to discover events, purchase tickets, create companies,
+    manage events, and interact with other users through comments and notifications.
+  version: 1.0.0
+  contact:
+    name: Uevent Support
+    email: support@uevent.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: '{protocol}://{host}/{basePath}'
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: http
+      host:
+        default: localhost:3000
+      basePath:
+        default: api
+
+tags:
+  - name: Auth
+    description: Authentication operations
+  - name: Users
+    description: User management operations
+  - name: Events
+    description: Event operations
+  - name: Companies
+    description: Company operations
+  - name: Tickets
+    description: Ticket operations
+  - name: Comments
+    description: Comment operations
+  - name: Categories
+    description: Event categories and formats
+  - name: Notifications
+    description: User notifications
+  - name: Files
+    description: File upload operations
+  - name: Payments
+    description: Payment processing
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: 'Bad request'
+        timestamp:
+          type: string
+          format: date-time
+        method:
+          type: string
+          example: 'GET'
+        path:
+          type: string
+          example: '/api/events'
+
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    Tokens:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        refreshToken:
+          type: string
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        password:
+          type: string
+          format: password
+          example: 'Pass123@'
+
+    RegisterDto:
+      type: object
+      required:
+        - email
+        - password
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        password:
+          type: string
+          format: password
+          example: 'Pass123@'
+        name:
+          type: string
+          example: 'John Doe'
+        bio:
+          type: string
+          example: 'Event enthusiast'
+
+    ResetPasswordDto:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          format: password
+          example: 'NewPass123@'
+
+    EmailDto:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        name:
+          type: string
+          example: 'John Doe'
+        email:
+          type: string
+          format: email
+          example: 'user@example.com'
+        avatar:
+          type: string
+          format: uri
+          example: 'https://example.com/avatar.jpg'
+        bio:
+          type: string
+          example: 'Event enthusiast'
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          example: 'USER'
+        emailVerified:
+          type: boolean
+          example: true
+        showInAttendeeList:
+          type: boolean
+          example: true
+        authProvider:
+          type: string
+          enum: [EMAIL, GOOGLE]
+          example: 'EMAIL'
+        eventReminderChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+        ticketPurchaseChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+        newCommentChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+        companyUpdateChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+
+    UpdateUserDto:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'John Doe'
+        bio:
+          type: string
+          example: 'Event enthusiast'
+        showInAttendeeList:
+          type: boolean
+          example: true
+        newCommentChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+        eventReminderChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+        companyUpdateChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+        ticketPurchaseChannel:
+          type: string
+          enum: [EMAIL, NONE]
+          example: 'EMAIL'
+
+    Company:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        name:
+          type: string
+          example: 'Acme Corporation'
+        description:
+          type: string
+          example: 'Leading provider of event solutions'
+        email:
+          type: string
+          format: email
+          example: 'info@acme.com'
+        website:
+          type: string
+          format: uri
+          example: 'https://acme.com'
+        logo:
+          type: string
+          format: uri
+          example: 'https://example.com/logo.jpg'
+        address:
+          type: string
+          example: '123 Main St, City, Country'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        ownerId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    CreateCompanyDto:
+      type: object
+      required:
+        - name
+        - email
+        - address
+      properties:
+        name:
+          type: string
+          example: 'Acme Corporation'
+        description:
+          type: string
+          example: 'Leading provider of event solutions'
+        email:
+          type: string
+          format: email
+          example: 'info@acme.com'
+        website:
+          type: string
+          format: uri
+          example: 'https://acme.com'
+        address:
+          type: string
+          example: '123 Main St, City, Country'
+
+    UpdateCompanyDto:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'Acme Corporation'
+        description:
+          type: string
+          example: 'Leading provider of event solutions'
+        email:
+          type: string
+          format: email
+          example: 'info@acme.com'
+        website:
+          type: string
+          format: uri
+          example: 'https://acme.com'
+        address:
+          type: string
+          example: '123 Main St, City, Country'
+
+    CompanyNews:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        title:
+          type: string
+          example: 'New Product Launch'
+        content:
+          type: string
+          example: 'We are excited to announce our new product line...'
+        image:
+          type: string
+          format: uri
+          example: 'https://example.com/news.jpg'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        companyId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    CreateCompanyNewsDto:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          example: 'New Product Launch'
+        content:
+          type: string
+          example: 'We are excited to announce our new product line...'
+
+    EventCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        name:
+          type: string
+          example: 'Business'
+        description:
+          type: string
+          example: 'Business related events'
+
+    EventFormat:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        name:
+          type: string
+          example: 'Conference'
+        description:
+          type: string
+          example: 'Large gathering with presentations'
+
+    Location:
+      type: object
+      properties:
+        address:
+          type: string
+          example: '123 Main St, City, Country'
+        latitude:
+          type: number
+          format: float
+          example: 40.7128
+        longitude:
+          type: number
+          format: float
+          example: -74.0060
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        title:
+          type: string
+          example: 'Tech Conference 2023'
+        description:
+          type: string
+          example: 'Annual technology conference with industry leaders'
+        poster:
+          type: string
+          format: uri
+          example: 'https://example.com/poster.jpg'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        publishDate:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/Location'
+        price:
+          type: number
+          format: float
+          example: 99.99
+        maxAttendees:
+          type: integer
+          example: 500
+        currentAttendees:
+          type: integer
+          example: 250
+        showAttendees:
+          type: string
+          enum: [ALL, ATTENDEES_ONLY]
+          example: 'ALL'
+        notifyOrganizer:
+          type: boolean
+          example: true
+        redirectUrl:
+          type: string
+          format: uri
+          example: 'https://example.com/thank-you'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        companyId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        company:
+          $ref: '#/components/schemas/Company'
+        categoryId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        category:
+          $ref: '#/components/schemas/EventCategory'
+        formatId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        format:
+          $ref: '#/components/schemas/EventFormat'
+        attendees:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    CreateEventDto:
+      type: object
+      required:
+        - title
+        - description
+        - startDate
+        - endDate
+        - location
+        - companyId
+        - categoryId
+        - formatId
+      properties:
+        title:
+          type: string
+          example: 'Tech Conference 2023'
+        description:
+          type: string
+          example: 'Annual technology conference with industry leaders'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        publishDate:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/Location'
+        price:
+          type: number
+          format: float
+          example: 99.99
+        maxAttendees:
+          type: integer
+          example: 500
+        showAttendees:
+          type: string
+          enum: [ALL, ATTENDEES_ONLY]
+          example: 'ALL'
+        notifyOrganizer:
+          type: boolean
+          example: true
+        redirectUrl:
+          type: string
+          format: uri
+          example: 'https://example.com/thank-you'
+        companyId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        categoryId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        formatId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    UpdateEventDto:
+      type: object
+      properties:
+        title:
+          type: string
+          example: 'Tech Conference 2023'
+        description:
+          type: string
+          example: 'Annual technology conference with industry leaders'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        publishDate:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/Location'
+        price:
+          type: number
+          format: float
+          example: 99.99
+        maxAttendees:
+          type: integer
+          example: 500
+        showAttendees:
+          type: string
+          enum: [ALL, ATTENDEES_ONLY]
+          example: 'ALL'
+        notifyOrganizer:
+          type: boolean
+          example: true
+        redirectUrl:
+          type: string
+          format: uri
+          example: 'https://example.com/thank-you'
+        categoryId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        formatId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    EventFilterDto:
+      type: object
+      properties:
+        search:
+          type: string
+          example: 'tech'
+        categoryId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        formatId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        companyId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        minPrice:
+          type: number
+          format: float
+          example: 0
+        maxPrice:
+          type: number
+          format: float
+          example: 100
+        location:
+          type: string
+          example: 'New York'
+
+    PromoCode:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        code:
+          type: string
+          example: 'SUMMER2023'
+        discountPercent:
+          type: number
+          format: float
+          example: 20
+        maxUses:
+          type: integer
+          example: 100
+        currentUses:
+          type: integer
+          example: 45
+        expiryDate:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    CreatePromoCodeDto:
+      type: object
+      required:
+        - code
+        - discountPercent
+        - eventId
+      properties:
+        code:
+          type: string
+          example: 'SUMMER2023'
+        discountPercent:
+          type: number
+          format: float
+          example: 20
+        maxUses:
+          type: integer
+          example: 100
+        expiryDate:
+          type: string
+          format: date-time
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    ValidatePromoCodeDto:
+      type: object
+      required:
+        - code
+        - eventId
+      properties:
+        code:
+          type: string
+          example: 'SUMMER2023'
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    PromoCodeValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        discountPercent:
+          type: number
+          format: float
+          example: 20
+        discountedPrice:
+          type: number
+          format: float
+          example: 79.99
+        originalPrice:
+          type: number
+          format: float
+          example: 99.99
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        ticketNumber:
+          type: string
+          example: 'TICKET-123456'
+        purchaseDate:
+          type: string
+          format: date-time
+        price:
+          type: number
+          format: float
+          example: 79.99
+        originalPrice:
+          type: number
+          format: float
+          example: 99.99
+        status:
+          type: string
+          enum: [ACTIVE, USED, CANCELLED, REFUNDED]
+          example: 'ACTIVE'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        event:
+          $ref: '#/components/schemas/Event'
+        promoCodeId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        promoCode:
+          $ref: '#/components/schemas/PromoCode'
+
+    PurchaseTicketDto:
+      type: object
+      required:
+        - eventId
+      properties:
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        promoCode:
+          type: string
+          example: 'SUMMER2023'
+
+    PaymentIntent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 'pi_3NkCFEKb9q6SZIae1Vv5JvF9'
+        clientSecret:
+          type: string
+          example: 'pi_3NkCFEKb9q6SZIae1Vv5JvF9_secret_YWJjMTIzNDU2Nzg5'
+        amount:
+          type: number
+          format: float
+          example: 79.99
+        currency:
+          type: string
+          example: 'usd'
+        status:
+          type: string
+          enum:
+            [
+              requires_payment_method,
+              requires_confirmation,
+              requires_action,
+              processing,
+              requires_capture,
+              canceled,
+              succeeded,
+            ]
+          example: 'requires_payment_method'
+
+    CreatePaymentIntentDto:
+      type: object
+      required:
+        - ticketId
+      properties:
+        ticketId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    ConfirmPaymentDto:
+      type: object
+      required:
+        - paymentIntentId
+      properties:
+        paymentIntentId:
+          type: string
+          example: 'pi_3NkCFEKb9q6SZIae1Vv5JvF9'
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        content:
+          type: string
+          example: 'Great event! Looking forward to it.'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        user:
+          $ref: '#/components/schemas/User'
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    CreateCommentDto:
+      type: object
+      required:
+        - content
+        - eventId
+      properties:
+        content:
+          type: string
+          example: 'Great event! Looking forward to it.'
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    UpdateCommentDto:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: 'Updated: Great event! Looking forward to it.'
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        title:
+          type: string
+          example: 'Event Reminder'
+        content:
+          type: string
+          example: "Your event 'Tech Conference 2023' starts in 24 hours."
+        read:
+          type: boolean
+          example: false
+        type:
+          type: string
+          enum:
+            [
+              EVENT_REMINDER,
+              NEW_COMMENT,
+              COMPANY_UPDATE,
+              TICKET_PURCHASE,
+              SYSTEM,
+            ]
+          example: 'EVENT_REMINDER'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        event:
+          $ref: '#/components/schemas/Event'
+
+    MarkNotificationReadDto:
+      type: object
+      required:
+        - notificationId
+      properties:
+        notificationId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        userId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        companyId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    SubscribeDto:
+      type: object
+      properties:
+        eventId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+        companyId:
+          type: string
+          example: '60d21b4667d0d8992e610c85'
+
+    PaginationMeta:
+      type: object
+      properties:
+        totalItemsCount:
+          type: integer
+          example: 100
+        itemsPerPage:
+          type: integer
+          example: 10
+        currentPage:
+          type: integer
+          example: 1
+
+    PaginationOptions:
+      type: object
+      properties:
+        page:
+          type: integer
+          default: 1
+          example: 1
+        limit:
+          type: integer
+          default: 10
+          example: 10
+
+    PaginatedEvents:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginatedCompanies:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginatedTickets:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginatedComments:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    PaginatedNotifications:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      description: Authenticate a user and return access and refresh tokens
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register user
+      description: Register a new user
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDto'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      description: Invalidate the refresh token
+      operationId: logout
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh tokens
+      description: Get new access and refresh tokens using a refresh token
+      operationId: refresh
+      responses:
+        '200':
+          description: Tokens successfully refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/activate/{token}:
+    post:
+      tags:
+        - Auth
+      summary: Activate account
+      description: Activate a user account using the activation token
+      operationId: activate
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Account successfully activated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        '400':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/send-reset-password-link:
+    post:
+      tags:
+        - Auth
+      summary: Send password reset link
+      description: Send a password reset link to the user's email
+      operationId: sendResetPasswordLink
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailDto'
+      responses:
+        '200':
+          description: Reset link sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Reset password
+      description: Reset user password using the reset token
+      operationId: resetPassword
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordDto'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid token or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/google/login:
+    post:
+      tags:
+        - Auth
+      summary: Google login
+      description: Login with Google OAuth
+      operationId: googleLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  example: '4/0AX4XfWgzKUQQVJ6yCXXXXXXXXXXXXXXXXXXXXXXXX'
+      responses:
+        '200':
+          description: Successfully logged in with Google
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tokens'
+        '400':
+          description: Invalid Google code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user
+      description: Get the profile of the currently authenticated user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Users
+      summary: Update current user
+      description: Update the profile of the currently authenticated user
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserDto'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/avatar:
+    patch:
+      tags:
+        - Users
+      summary: Update user avatar
+      description: Update the avatar of the currently authenticated user
+      operationId: updateUserAvatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Avatar updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /companies:
+    post:
+      tags:
+        - Companies
+      summary: Create company
+      description: Create a new company
+      operationId: createCompany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyDto'
+      responses:
+        '201':
+          description: Company created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Companies
+      summary: Get companies
+      description: Get a paginated list of companies
+      operationId: getCompanies
+      security: []
+      parameters:
+        - $ref: '#/components/schemas/PaginationOptions'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Companies retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCompanies'
+
+  /companies/{id}:
+    get:
+      tags:
+        - Companies
+      summary: Get company
+      description: Get a company by ID
+      operationId: getCompany
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Companies
+      summary: Update company
+      description: Update a company by ID
+      operationId: updateCompany
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCompanyDto'
+      responses:
+        '200':
+          description: Company updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the company owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Companies
+      summary: Delete company
+      description: Delete a company by ID
+      operationId: deleteCompany
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Company deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the company owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /companies/{id}/logo:
+    patch:
+      tags:
+        - Companies
+      summary: Update company logo
+      description: Update the logo of a company
+      operationId: updateCompanyLogo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                logo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Logo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the company owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /companies/{id}/news:
+    post:
+      tags:
+        - Companies
+      summary: Create company news
+      description: Create a news item for a company
+      operationId: createCompanyNews
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyNewsDto'
+      responses:
+        '201':
+          description: News created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyNews'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the company owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Companies
+      summary: Get company news
+      description: Get a paginated list of news for a company
+      operationId: getCompanyNews
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/schemas/PaginationOptions'
+      responses:
+        '200':
+          description: News retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CompanyNews'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /companies/my:
+    get:
+      tags:
+        - Companies
+      summary: Get my companies
+      description: Get a list of companies owned by the current user
+      operationId: getMyCompanies
+      responses:
+        '200':
+          description: Companies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Company'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events:
+    post:
+      tags:
+        - Events
+      summary: Create event
+      description: Create a new event
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventDto'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the company owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Events
+      summary: Get events
+      description: Get a paginated list of events with filtering options
+      operationId: getEvents
+      security: []
+      parameters:
+        - $ref: '#/components/schemas/PaginationOptions'
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: formatId
+          in: query
+          schema:
+            type: string
+        - name: companyId
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: location
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEvents'
+
+  /events/{id}:
+    get:
+      tags:
+        - Events
+      summary: Get event
+      description: Get an event by ID
+      operationId: getEvent
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - Events
+      summary: Update event
+      description: Update an event by ID
+      operationId: updateEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventDto'
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the event organizer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Events
+      summary: Delete event
+      description: Delete an event by ID
+      operationId: deleteEvent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the event organizer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/{id}/poster:
+    patch:
+      tags:
+        - Events
+      summary: Update event poster
+      description: Update the poster of an event
+      operationId: updateEventPoster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                poster:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Poster updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the event organizer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/{id}/attendees:
+    get:
+      tags:
+        - Events
+      summary: Get event attendees
+      description: Get a list of users attending an event
+      operationId: getEventAttendees
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Attendees retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - attendees are only visible to event attendees
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/{id}/similar:
+    get:
+      tags:
+        - Events
+      summary: Get similar events
+      description: Get a list of events similar to the specified event
+      operationId: getSimilarEvents
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Similar events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/my:
+    get:
+      tags:
+        - Events
+      summary: Get my events
+      description: Get a list of events created by the current user's companies
+      operationId: getMyEvents
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /events/attending:
+    get:
+      tags:
+        - Events
+      summary: Get events I'm attending
+      description: Get a list of events the current user is attending
+      operationId: getEventsAttending
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get event categories
+      description: Get a list of all event categories
+      operationId: getCategories
+      security: []
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventCategory'
+
+  /formats:
+    get:
+      tags:
+        - Categories
+      summary: Get event formats
+      description: Get a list of all event formats
+      operationId: getFormats
+      security: []
+      responses:
+        '200':
+          description: Formats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventFormat'
+
+  /promo-codes:
+    post:
+      tags:
+        - Events
+      summary: Create promo code
+      description: Create a new promo code for an event
+      operationId: createPromoCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromoCodeDto'
+      responses:
+        '201':
+          description: Promo code created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoCode'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the event organizer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /promo-codes/validate:
+    post:
+      tags:
+        - Events
+      summary: Validate promo code
+      description: Validate a promo code for an event
+      operationId: validatePromoCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidatePromoCodeDto'
+      responses:
+        '200':
+          description: Promo code validation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromoCodeValidationResult'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event or promo code not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tickets:
+    post:
+      tags:
+        - Tickets
+      summary: Purchase ticket
+      description: Create a ticket purchase intent for an event
+      operationId: purchaseTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseTicketDto'
+      responses:
+        '201':
+          description: Ticket purchase intent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid input or event sold out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Tickets
+      summary: Get my tickets
+      description: Get a paginated list of tickets purchased by the current user
+      operationId: getMyTickets
+      parameters:
+        - $ref: '#/components/schemas/PaginationOptions'
+      responses:
+        '200':
+          description: Tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTickets'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tickets/{id}:
+    get:
+      tags:
+        - Tickets
+      summary: Get ticket
+      description: Get a ticket by ID
+      operationId: getTicket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ticket retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the ticket owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/create-intent:
+    post:
+      tags:
+        - Payments
+      summary: Create payment intent
+      description: Create a payment intent for a ticket
+      operationId: createPaymentIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentDto'
+      responses:
+        '200':
+          description: Payment intent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the ticket owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/confirm:
+    post:
+      tags:
+        - Payments
+      summary: Confirm payment
+      description: Confirm a payment for a ticket
+      operationId: confirmPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmPaymentDto'
+      responses:
+        '200':
+          description: Payment confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /comments:
+    post:
+      tags:
+        - Comments
+      summary: Create comment
+      description: Create a new comment for an event
+      operationId: createComment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentDto'
+      responses:
+        '201':
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /comments/{id}:
+    patch:
+      tags:
+        - Comments
+      summary: Update comment
+      description: Update a comment by ID
+      operationId: updateComment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentDto'
+      responses:
+        '200':
+          description: Comment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the comment author
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Comments
+      summary: Delete comment
+      description: Delete a comment by ID
+      operationId: deleteComment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the comment author or event organizer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /comments/event/{eventId}:
+    get:
+      tags:
+        - Comments
+      summary: Get event comments
+      description: Get a paginated list of comments for an event
+      operationId: getEventComments
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/schemas/PaginationOptions'
+      responses:
+        '200':
+          description: Comments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedComments'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get notifications
+      description: Get a paginated list of notifications for the current user
+      operationId: getNotifications
+      parameters:
+        - $ref: '#/components/schemas/PaginationOptions'
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotifications'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/mark-read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: Mark a notification as read
+      operationId: markNotificationRead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkNotificationReadDto'
+      responses:
+        '200':
+          description: Notification marked as read successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - not the notification recipient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/mark-all-read:
+    post:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      description: Mark all notifications as read for the current user
+      operationId: markAllNotificationsRead
+      responses:
+        '200':
+          description: All notifications marked as read successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /subscriptions:
+    post:
+      tags:
+        - Events
+      summary: Subscribe to event or company
+      description: Subscribe to notifications for an event or company
+      operationId: subscribe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeDto'
+      responses:
+        '201':
+          description: Subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Event or company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Events
+      summary: Unsubscribe from event or company
+      description: Unsubscribe from notifications for an event or company
+      operationId: unsubscribe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscribeDto'
+      responses:
+        '200':
+          description: Unsubscribed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /subscriptions/my:
+    get:
+      tags:
+        - Events
+      summary: Get my subscriptions
+      description: Get a list of subscriptions for the current user
+      operationId: getMySubscriptions
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
