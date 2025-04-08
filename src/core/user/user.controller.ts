@@ -29,7 +29,7 @@ import {
   IMG_MAX_SIZE,
 } from '../file-upload/file-upload.contsants';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './user.entity';
+import { UserEntity } from './user.entity';
 import { UserService } from './user.service';
 
 @ApiBearerAuth()
@@ -38,21 +38,21 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get('me')
-  @ApiOkResponse({ type: User })
-  async me(@GetCurrentUser() { sub }: JwtPayload): Promise<User> {
-    return new User(await this.userService.me(sub));
+  @ApiOkResponse({ type: UserEntity })
+  async me(@GetCurrentUser() { sub }: JwtPayload): Promise<UserEntity> {
+    return new UserEntity(await this.userService.me(sub));
   }
 
   @Patch('me')
-  @ApiOkResponse({ type: User })
+  @ApiOkResponse({ type: UserEntity })
   async update(
     @Body() dto: UpdateUserDto,
     @GetCurrentUser() { sub }: JwtPayload,
-  ): Promise<User> {
-    return new User(await this.userService.update(sub, dto));
+  ): Promise<UserEntity> {
+    return new UserEntity(await this.userService.update(sub, dto));
   }
 
-  @ApiOkResponse({ type: User })
+  @ApiOkResponse({ type: UserEntity })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -81,7 +81,7 @@ export class UserController {
         }),
     )
     avatar: Express.Multer.File,
-  ): Promise<User> {
-    return new User(await this.userService.updateAvatar(sub, avatar));
+  ): Promise<UserEntity> {
+    return new UserEntity(await this.userService.updateAvatar(sub, avatar));
   }
 }

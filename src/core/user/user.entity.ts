@@ -2,7 +2,7 @@ import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import {
   AuthProviderType,
   NotificationChannelType,
-  User as IUser,
+  User,
   UserRole,
 } from '@prisma/client';
 import {
@@ -15,7 +15,7 @@ import {
 import { BaseEntity } from '../../common/base/base.entity';
 import { Paginated } from '../../shared/pagination';
 
-export class UserDescription implements IUser {
+export class UserDescription implements User {
   @ApiProperty({ example: 'qwcqwdocq12djq2ewff232' })
   id: string;
   @ApiProperty({ example: 'John Doe' })
@@ -68,7 +68,7 @@ export class UserRelations {
   // eventAttendees: EventAttendee[];
 }
 
-export class User
+export class UserEntity
   extends IntersectionType(UserDescription, UserRelations)
   implements BaseEntity
 {
@@ -79,7 +79,7 @@ export class User
 }
 
 export class PaginatedUsers extends Paginated<User> {
-  @Type(() => User)
-  @ApiProperty({ type: () => User, isArray: true })
+  @Type(() => UserEntity)
+  @ApiProperty({ type: () => UserEntity, isArray: true })
   declare items: User[];
 }

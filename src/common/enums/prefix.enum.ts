@@ -4,6 +4,8 @@ export enum Prefix {
   HEALTH = 'health',
   USERS = 'users',
   AUTH = 'auth',
+  COMPANIES = 'companies',
+  COMPANIES_NEWS = 'companies-news',
   AUTH_GOOGLE = 'auth/google',
 }
 

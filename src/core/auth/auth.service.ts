@@ -13,7 +13,7 @@ import ResetPasswordLink from 'src/emails/reset-password';
 import { ApiConfigService } from '../../config/api-config.service';
 import { DatabaseService } from '../db/database.service';
 import { MailService } from '../mail/mail.service';
-import { User } from '../user/user.entity';
+import { UserEntity } from '../user/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -92,7 +92,7 @@ export class AuthService {
 
     await this.sendActivationLink(user.email, user.id, user.name);
 
-    return new User(user);
+    return new UserEntity(user);
   }
 
   private async sendActivationLink(email: string, id: string, name: string) {
