@@ -37,7 +37,7 @@ export class CompanyController {
 
   @ApiBearerAuth()
   @ApiOkResponse({ type: CompanyEntity })
-  @Patch('update/:id')
+  @Patch(':id')
   async update(
     @Body() dto: UpdateCompanyDto,
     @GetCurrentUser() { sub }: JwtPayload,

@@ -154,9 +154,6 @@ model Event {
     title               String          @map("title")
     description         String          @map("description")
     posterUrl           String?         @map("poster_url")
-    location            String          @map("location")
-    locationLat         Float?          @map("location_lat") // Latitude for Google Maps
-    locationLng         Float?          @map("location_lng") // Longitude for Google Maps
     startDate           DateTime        @map("start_date")
     endDate             DateTime        @map("end_date")
     price               Float           @default(0) @map("price")
@@ -171,22 +168,36 @@ model Event {
     updatedAt           DateTime        @updatedAt @map("updated_at")
 
     // Relations
-    creator     User                @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-    creatorId   String              @map("creator_id")
-    company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-    companyId   String              @map("company_id")
-    attendees   EventAttendee[]
-    tickets     Ticket[]
-    comments    Comment[]
-    subscribers EventSubscription[]
-    promoCodes  PromoCode[]
-    themes      EventTheme[]
+    creator       User                @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+    creatorId     String              @map("creator_id")
+    company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+    companyId     String              @map("company_id")
+    eventLocation EventLocation?
+    attendees     EventAttendee[]
+    tickets       Ticket[]
+    comments      Comment[]
+    subscribers   EventSubscription[]
+    promoCodes    PromoCode[]
+    themes        EventTheme[]
 
     @@index([creatorId])
     @@index([companyId])
     @@index([startDate])
     @@index([publishDate])
     @@map("events")
+}
+
+model EventLocation {
+    id      String @id @default(cuid()) @map("id")
+    address String @map("address")
+    lat     Float  @map("lat") // Latitude for Google Maps
+    lng     Float  @map("lng") // Longitude for Google Maps
+
+    // Relations
+    event   Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    eventId String @unique @map("event_id")
+
+    @@map("event_locations")
 }
 
 model EventTheme {
