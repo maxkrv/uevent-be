@@ -46,7 +46,7 @@ export class CreateEventDto {
   @Type(() => Date)
   @ValidateIf((o) => o.publishDate !== undefined)
   @ValidateDateInTheFuture({ message: 'Publish date cannot be in the past' })
-  publishDate: Date;
+  publishDate?: Date;
 
   @ApiProperty({ required: true, example: '2025-05-10T10:00:00Z' })
   @IsNotEmpty()

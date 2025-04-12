@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { DatabaseService } from '@/core/db/database.service';
 
@@ -18,6 +19,11 @@ export class EventService {
     private readonly databaseService: DatabaseService,
     private readonly fileUploadService: FileUploadService,
   ) {}
+
+  static include: Prisma.EventInclude = {
+    eventLocation: true,
+    company: true,
+  };
 
   async create(userId: string, dto: CreateEventDto) {
     const company = await this.databaseService.company.findUnique({
@@ -44,10 +50,7 @@ export class EventService {
           create: dto.eventLocation,
         },
       },
-      include: {
-        eventLocation: true,
-        company: true,
-      },
+      include: EventService.include,
     });
   }
 
@@ -67,34 +70,24 @@ export class EventService {
       );
     }
 
-    let eventLocationAction;
+    const shouldRemoveLocation =
+      'eventLocation' in dto
+        ? dto.eventLocation === null
+        : !!event.eventLocation;
 
-    if ('eventLocation' in dto) {
-      if (dto.eventLocation === null) {
-        if (event.eventLocation) {
-          eventLocationAction = { delete: true };
-        }
-      } else if (dto.eventLocation) {
-        eventLocationAction = {
-          upsert: {
-            create: {
-              ...dto.eventLocation,
-              lat: dto.eventLocation.lat,
-              lng: dto.eventLocation.lng,
+    const shouldUpsertLocation =
+      'eventLocation' in dto && dto.eventLocation !== null;
+
+    const eventLocationAction = shouldRemoveLocation
+      ? { delete: true }
+      : shouldUpsertLocation
+        ? {
+            upsert: {
+              create: { ...dto.eventLocation },
+              update: { ...dto.eventLocation },
             },
-            update: {
-              ...dto.eventLocation,
-              lat: dto.eventLocation.lat,
-              lng: dto.eventLocation.lng,
-            },
-          },
-        };
-      }
-    } else {
-      if (event.eventLocation) {
-        eventLocationAction = { delete: true };
-      }
-    }
+          }
+        : undefined;
 
     return this.databaseService.event.update({
       where: {
@@ -103,7 +96,6 @@ export class EventService {
       },
       data: {
         ...dto,
-        companyId: dto.companyId,
         ...(eventLocationAction && { eventLocation: eventLocationAction }),
       },
       include: {
@@ -139,10 +131,7 @@ export class EventService {
       data: {
         posterUrl,
       },
-      include: {
-        eventLocation: true,
-        company: true,
-      },
+      include: EventService.include,
     });
   }
 
@@ -155,10 +144,7 @@ export class EventService {
           lte: now,
         },
       },
-      include: {
-        eventLocation: true,
-        company: true,
-      },
+      include: EventService.include,
       skip: (dto.page - 1) * dto.limit,
       take: dto.limit,
     });
@@ -182,10 +168,7 @@ export class EventService {
       where: {
         creatorId: userId,
       },
-      include: {
-        eventLocation: true,
-        company: true,
-      },
+      include: EventService.include,
       skip: (dto.page - 1) * dto.limit,
       take: dto.limit,
     });
@@ -204,10 +187,7 @@ export class EventService {
       where: {
         id,
       },
-      include: {
-        eventLocation: true,
-        company: true,
-      },
+      include: EventService.include,
     });
 
     if (!data) {
@@ -239,10 +219,7 @@ export class EventService {
           id,
           creatorId: userId,
         },
-        include: {
-          eventLocation: true,
-          company: true,
-        },
+        include: EventService.include,
       })
       .catch(() => {
         throw new NotFoundException('Event not found');
