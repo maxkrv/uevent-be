@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { Success } from '@/core/auth/dto/success.dto';
 import { DatabaseService } from '@/core/db/database.service';
 
 import { FileUploadService } from '../../core/file-upload/file-upload.service';
@@ -224,5 +226,66 @@ export class EventService {
       .catch(() => {
         throw new NotFoundException('Event not found');
       });
+  }
+
+  async subscribe(eventId: string, userId: string) {
+    const event = await this.databaseService.event.findUnique({
+      where: {
+        id: eventId,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    try {
+      await this.databaseService.eventSubscription.create({
+        data: { userId, eventId },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Already subscribed');
+        }
+      }
+
+      throw error;
+    }
+
+    return new Success();
+  }
+
+  async unsubscribe(eventId: string, userId: string) {
+    const event = await this.databaseService.event.findUnique({
+      where: {
+        id: eventId,
+      },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    try {
+      await this.databaseService.eventSubscription.delete({
+        where: {
+          eventId_userId: {
+            userId,
+            eventId,
+          },
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new BadRequestException('Not subscribed');
+        }
+      }
+
+      throw error;
+    }
+
+    return new Success();
   }
 }

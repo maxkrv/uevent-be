@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 
 import { Prefix } from '@/common/enums/prefix.enum';
+import { Success } from '@/core/auth/dto/success.dto';
 import { JwtPayload } from '@/core/auth/interface/jwt.interface';
 import {
   UploadFileSizeValidator,
@@ -130,5 +131,25 @@ export class EventController {
   @Delete(':id')
   async delete(@GetCurrentUser() { sub }: JwtPayload, @Param() { id }: IDDto) {
     return new EventEntity(await this.eventService.delete(id, sub));
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: Success })
+  @Post(':id/subscribe')
+  async subnscribe(
+    @GetCurrentUser() { sub }: JwtPayload,
+    @Param() { id }: IDDto,
+  ) {
+    return await this.eventService.subscribe(id, sub);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: Success })
+  @Delete(':id/unsubscribe')
+  async unsubscribe(
+    @GetCurrentUser() { sub }: JwtPayload,
+    @Param() { id }: IDDto,
+  ) {
+    return this.eventService.unsubscribe(id, sub);
   }
 }
