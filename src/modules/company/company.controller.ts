@@ -8,7 +8,11 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+} from '@nestjs/swagger';
 
 import { Prefix } from '@/common/enums/prefix.enum';
 import { Success } from '@/core/auth/dto/success.dto';
@@ -79,7 +83,7 @@ export class CompanyController {
   }
 
   @ApiBearerAuth()
-  @ApiOkResponse({ type: Success })
+  @ApiCreatedResponse({ type: Success })
   @Post(':id/subscribe')
   async subscribe(
     @GetCurrentUser() { sub }: JwtPayload,

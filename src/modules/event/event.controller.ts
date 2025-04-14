@@ -17,6 +17,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiCreatedResponse,
   ApiOkResponse,
 } from '@nestjs/swagger';
 
@@ -134,7 +135,7 @@ export class EventController {
   }
 
   @ApiBearerAuth()
-  @ApiOkResponse({ type: Success })
+  @ApiCreatedResponse({ type: Success })
   @Post(':id/subscribe')
   async subnscribe(
     @GetCurrentUser() { sub }: JwtPayload,
