@@ -14,9 +14,11 @@ import { DatabaseService } from '@/core/db/database.service';
 import { FileUploadService } from '../../core/file-upload/file-upload.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { GetAtendeesDto } from './dto/get-atendees.dto';
 import { GetEventDto } from './dto/get-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { PaginatedEvent } from './event.entity';
+import { PaginatedEvent } from './entities/event.entity';
+import { PaginatedEventAtendees } from './entities/event-atendees.entity';
 
 @Injectable()
 export class EventService {
@@ -414,5 +416,72 @@ export class EventService {
     );
 
     return new UrlResponse(url);
+  }
+
+  async getAttendees(
+    eventId: string,
+    dto: GetAtendeesDto,
+  ): Promise<PaginatedEventAtendees> {
+    const event = await this.databaseService.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const data = await this.databaseService.eventAttendee.findMany({
+      where: {
+        eventId: eventId,
+        user: {
+          settings: {
+            showInAttendeeList: true,
+          },
+          ...(dto.search && {
+            name: {
+              contains: dto.search,
+              mode: 'insensitive',
+            },
+          }),
+        },
+      },
+      skip: (dto.page - 1) * dto.limit,
+      take: dto.limit,
+    });
+
+    const count = await this.databaseService.eventAttendee.count({
+      where: {
+        eventId: eventId,
+        user: {
+          settings: {
+            showInAttendeeList: true,
+          },
+          ...(dto.search && {
+            name: {
+              contains: dto.search,
+              mode: 'insensitive',
+            },
+          }),
+        },
+      },
+    });
+
+    return new PaginatedEventAtendees(data, count, dto);
+  }
+
+  async getAttendeesCount(eventId: string) {
+    const event = await this.databaseService.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    const count = await this.databaseService.eventAttendee.count({
+      where: { eventId },
+    });
+
+    return { currentAttendees: count };
   }
 }

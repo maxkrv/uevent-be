@@ -11,7 +11,7 @@ import { BaseEntity } from '@/common/base/base.entity';
 import { UserEntity } from '@/core/user/entities/user.entity';
 import { Paginated } from '@/shared/pagination';
 
-import { EventEntity } from '../event/event.entity';
+import { EventEntity } from '../event/entities/event.entity';
 
 class TicketDescription implements Ticket {
   @ApiProperty({ example: '60d21b4667d0d8992e610c85' })

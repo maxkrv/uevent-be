@@ -37,9 +37,11 @@ import {
   IMG_MAX_SIZE,
 } from '../../core/file-upload/file-upload.contsants';
 import { CreateEventDto } from './dto/create-event.dto';
+import { GetAtendeesDto } from './dto/get-atendees.dto';
 import { GetEventDto } from './dto/get-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { EventEntity, PaginatedEvent } from './event.entity';
+import { EventEntity, PaginatedEvent } from './entities/event.entity';
+import { PaginatedEventAtendees } from './entities/event-atendees.entity';
 import { EventService } from './event.service';
 
 @Controller(Prefix.EVENTS)
@@ -163,5 +165,18 @@ export class EventController {
     @Param() { id }: IDDto,
   ) {
     return this.eventService.purchase(id, sub);
+  }
+
+  @Public()
+  @ApiOkResponse({ type: PaginatedEventAtendees, isArray: true })
+  @Get(':id/attendees')
+  async getAttendees(@Param() { id }: IDDto, @Query() dto: GetAtendeesDto) {
+    return this.eventService.getAttendees(id, dto);
+  }
+
+  @ApiBearerAuth()
+  @Get(':id/attendees/count')
+  async getAttendeesCount(@Param() { id }: IDDto) {
+    return this.eventService.getAttendeesCount(id);
   }
 }
