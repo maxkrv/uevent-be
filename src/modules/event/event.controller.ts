@@ -120,7 +120,7 @@ export class EventController {
     @GetCurrentUser() { sub }: JwtPayload,
     @Query() dto: GetEventDto,
   ) {
-    return this.eventService.findAllByUserId(sub, dto);
+    return this.eventService.findAll(dto, sub);
   }
 
   @Public()

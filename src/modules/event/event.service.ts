@@ -222,51 +222,124 @@ export class EventService {
     });
   }
 
-  async findAll(dto: GetEventDto) {
-    const now = new Date();
-
-    const data = await this.databaseService.event.findMany({
-      where: {
-        publishDate: {
-          lte: now,
-        },
-      },
-      include: this.include,
-      skip: (dto.page - 1) * dto.limit,
-      take: dto.limit,
-    });
-
-    const count = await this.databaseService.event.count({
-      where: {
-        publishDate: {
-          lte: now,
-        },
-      },
-    });
-
-    return new PaginatedEvent(data, count, dto);
-  }
-
-  async findAllByUserId(
-    userId: string,
-    dto: GetEventDto,
+  async findAll(
+    {
+      sort,
+      priceFrom,
+      priceTo,
+      toDate,
+      fromDate,
+      themes,
+      format,
+      search,
+      page,
+      limit,
+      ...dto
+    }: GetEventDto,
+    userId?: string,
   ): Promise<PaginatedEvent> {
+    const getSorter = (): Prisma.EventOrderByWithAggregationInput => {
+      switch (sort) {
+        case 'name': {
+          return {
+            title: 'asc',
+          };
+        }
+        case 'price-high': {
+          return {
+            price: 'desc',
+          };
+        }
+        case 'price-low': {
+          return {
+            price: 'asc',
+          };
+        }
+        case 'date':
+        default: {
+          return {
+            publishDate: 'asc',
+          };
+        }
+      }
+    };
+
+    const getPriceFilter = (): Prisma.EventWhereInput => {
+      const filter: Prisma.EventWhereInput = {};
+
+      if (priceFrom) {
+        filter.price = {
+          gte: priceFrom,
+        };
+      }
+
+      if (priceTo) {
+        filter.price = {
+          lte: priceTo,
+        };
+      }
+
+      return filter;
+    };
+
+    const getDateFilter = (): Prisma.EventWhereInput => {
+      return {
+        publishDate: {
+          gte: fromDate,
+          lte: toDate,
+        },
+      };
+    };
+
+    const getThemesFilter = (): Prisma.EventWhereInput => {
+      const filter: Prisma.EventWhereInput = {};
+
+      if (themes) {
+        filter.themes = {
+          hasSome: themes,
+        };
+      }
+
+      return filter;
+    };
+
     const data = await this.databaseService.event.findMany({
       where: {
+        ...getPriceFilter(),
+        ...getDateFilter(),
+        ...getThemesFilter(),
+        format: {
+          in: format,
+        },
+        title: {
+          contains: search,
+          mode: 'insensitive',
+        },
         creatorId: userId,
+        ...dto,
       },
       include: this.include,
-      skip: (dto.page - 1) * dto.limit,
-      take: dto.limit,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: getSorter(),
     });
 
     const count = await this.databaseService.event.count({
       where: {
-        creatorId: userId,
+        ...getPriceFilter(),
+        ...getDateFilter(),
+        ...getThemesFilter(),
+        format: {
+          in: format,
+        },
+        title: {
+          contains: search,
+        },
+        ...dto,
       },
     });
 
-    return new PaginatedEvent(data, count, dto);
+    return new PaginatedEvent(data, count, { page, limit });
   }
 
   async findById(id: string) {
