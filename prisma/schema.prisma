@@ -9,7 +9,7 @@ generator client {
 
 generator dbml {
     provider = "prisma-dbml-generator"
-    output   = "./generated/client"
+    output   = "./generated/dbml/schema.dbml"
 }
 
 // ======== ENUMS ========

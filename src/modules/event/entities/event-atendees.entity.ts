@@ -8,7 +8,7 @@ import {
 } from 'class-transformer';
 
 import { BaseEntity } from '@/common/base/base.entity';
-import { UserEntity } from '@/core/user/user.entity';
+import { UserEntity } from '@/core/user/entities/user.entity';
 import { TicketEntity } from '@/modules/tickets/ticket.entity';
 import { Paginated } from '@/shared/pagination';
 

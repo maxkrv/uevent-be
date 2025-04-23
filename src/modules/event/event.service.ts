@@ -12,6 +12,7 @@ import { UrlResponse } from '@/core/auth/dto/url.dto';
 import { DatabaseService } from '@/core/db/database.service';
 
 import { FileUploadService } from '../../core/file-upload/file-upload.service';
+import { DEFAULT_ITEMS_LIMIT, DEFAULT_PAGE } from '../../shared/pagination';
 import { StripeService } from '../stripe/stripe.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAtendeesDto } from './dto/get-atendees.dto';
@@ -19,6 +20,9 @@ import { GetEventDto } from './dto/get-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PaginatedEvent } from './entities/event.entity';
 import { PaginatedEventAtendees } from './entities/event-atendees.entity';
+
+const KILOMETERS_IN_DEGREE = 111.32;
+const DEFAULT_EVENTS_LOACTION_SEARCH_LIMIT = 1000;
 
 @Injectable()
 export class EventService {
@@ -180,9 +184,11 @@ export class EventService {
       },
       data: {
         ...rest,
-        themes: {
-          set: themes,
-        },
+        themes: themes
+          ? {
+              set: themes,
+            }
+          : undefined,
         location: eventLocationAction,
       },
       include: {
@@ -221,125 +227,118 @@ export class EventService {
       include: this.include,
     });
   }
+  async findAll(dto: GetEventDto, userId?: string): Promise<PaginatedEvent> {
+    this.validateLocationParams(dto);
 
-  async findAll(
-    {
-      sort,
-      priceFrom,
-      priceTo,
-      toDate,
-      fromDate,
-      themes,
-      format,
-      search,
-      page,
-      limit,
-      ...dto
-    }: GetEventDto,
+    const isLocationSearch = dto.lat !== undefined && dto.lng !== undefined;
+    const isPagination = dto.page !== undefined && dto.limit !== undefined;
+
+    const where = this.buildWhereClause(dto, userId);
+    const orderBy = this.buildOrderBy(dto);
+
+    const skip = isPagination
+      ? ((dto.page ?? DEFAULT_PAGE) - 1) * (dto.limit ?? DEFAULT_ITEMS_LIMIT)
+      : 0;
+
+    const take = isPagination
+      ? (dto.limit ?? DEFAULT_ITEMS_LIMIT)
+      : isLocationSearch
+        ? DEFAULT_EVENTS_LOACTION_SEARCH_LIMIT
+        : DEFAULT_ITEMS_LIMIT;
+
+    try {
+      const [data, count] = await Promise.all([
+        this.databaseService.event.findMany({
+          where,
+          include: this.include,
+          orderBy,
+          skip,
+          take,
+        }),
+        this.databaseService.event.count({ where }),
+      ]);
+
+      return new PaginatedEvent(data, count, {
+        page: skip / take + 1,
+        limit: take,
+      });
+    } catch (err) {
+      throw new BadRequestException(
+        `Error fetching events: ${err instanceof Error ? err.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  private validateLocationParams(dto: GetEventDto): void {
+    const lat = dto.lat;
+    const lng = dto.lng;
+
+    if (
+      (lat !== undefined && lng === undefined) ||
+      (lat === undefined && lng !== undefined)
+    ) {
+      throw new BadRequestException(
+        'Both latitude and longitude must be provided for location-based search',
+      );
+    }
+  }
+
+  private buildWhereClause(
+    dto: GetEventDto,
     userId?: string,
-  ): Promise<PaginatedEvent> {
-    const getSorter = (): Prisma.EventOrderByWithAggregationInput => {
-      switch (sort) {
-        case 'name': {
-          return {
-            title: 'asc',
-          };
-        }
-        case 'price-high': {
-          return {
-            price: 'desc',
-          };
-        }
-        case 'price-low': {
-          return {
-            price: 'asc',
-          };
-        }
-        case 'date':
-        default: {
-          return {
-            publishDate: 'asc',
-          };
-        }
-      }
-    };
+  ): Prisma.EventWhereInput {
+    const where: Prisma.EventWhereInput = {};
 
-    const getPriceFilter = (): Prisma.EventWhereInput => {
-      const filter: Prisma.EventWhereInput = {};
-
-      if (priceFrom) {
-        filter.price = {
-          gte: priceFrom,
-        };
-      }
-
-      if (priceTo) {
-        filter.price = {
-          lte: priceTo,
-        };
-      }
-
-      return filter;
-    };
-
-    const getDateFilter = (): Prisma.EventWhereInput => {
-      return {
-        publishDate: {
-          gte: fromDate,
-          lte: toDate,
-        },
+    if (dto.priceFrom !== undefined || dto.priceTo !== undefined) {
+      where.price = {
+        gte: dto.priceFrom,
+        lte: dto.priceTo,
       };
+    }
+    if (dto.fromDate) where.startDate = { gte: new Date(dto.fromDate) };
+    if (dto.toDate) where.endDate = { lte: new Date(dto.toDate) };
+    if (dto.themes?.length) where.themes = { hasSome: dto.themes };
+    if (dto.format?.length) where.format = { in: dto.format };
+    if (dto.search) where.title = { contains: dto.search, mode: 'insensitive' };
+    if (dto.companyId) where.companyId = dto.companyId;
+    if (userId) where.creatorId = userId;
+
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      const latDeg = dto.radius / KILOMETERS_IN_DEGREE;
+      const lngDeg =
+        dto.radius / (KILOMETERS_IN_DEGREE * Math.cos(this.toRad(dto.lat)));
+
+      where.location = {
+        lat: { gte: dto.lat - latDeg, lte: dto.lat + latDeg },
+        lng: { gte: dto.lng - lngDeg, lte: dto.lng + lngDeg },
+      };
+    }
+
+    return where;
+  }
+
+  private buildOrderBy(
+    dto: GetEventDto,
+  ): Prisma.EventOrderByWithAggregationInput {
+    const defaultSort: Prisma.EventOrderByWithAggregationInput = {
+      publishDate: 'asc',
     };
 
-    const getThemesFilter = (): Prisma.EventWhereInput => {
-      const filter: Prisma.EventWhereInput = {};
+    switch (dto.sort) {
+      case 'name':
+        return { title: 'asc' };
+      case 'price-high':
+        return { price: 'desc' };
+      case 'price-low':
+        return { price: 'asc' };
+      case 'date':
+      default:
+        return defaultSort;
+    }
+  }
 
-      if (themes) {
-        filter.themes = {
-          hasSome: themes,
-        };
-      }
-
-      return filter;
-    };
-
-    const data = await this.databaseService.event.findMany({
-      where: {
-        ...getPriceFilter(),
-        ...getDateFilter(),
-        ...getThemesFilter(),
-        format: {
-          in: format,
-        },
-        title: {
-          contains: search,
-          mode: 'insensitive',
-        },
-        creatorId: userId,
-        ...dto,
-      },
-      include: this.include,
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: getSorter(),
-    });
-
-    const count = await this.databaseService.event.count({
-      where: {
-        ...getPriceFilter(),
-        ...getDateFilter(),
-        ...getThemesFilter(),
-        format: {
-          in: format,
-        },
-        title: {
-          contains: search,
-        },
-        ...dto,
-      },
-    });
-
-    return new PaginatedEvent(data, count, { page, limit });
+  private toRad(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 
   async findById(id: string) {
