@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { DatabaseService } from '@/core/db/database.service';
 
@@ -131,51 +132,42 @@ export class CommentService {
   }
 
   async findAll(dto: GetCommentDto) {
-    const where: any = {};
+    const where: Prisma.CommentWhereInput = {};
+
     if (dto.eventId) where.eventId = dto.eventId;
     if (dto.companyNewsId) where.companyNewsId = dto.companyNewsId;
     if (dto.parentId) where.parentId = dto.parentId;
+    if (dto.userId) where.userId = dto.userId;
 
     const sortBy = dto.sortBy || 'date';
     const sortOrder = dto.sortOrder || 'desc';
 
-    if (sortBy === 'popularity') {
-      const data = await this.databaseService.comment.findMany({
-        where,
-        include: {
-          user: true,
-          _count: {
-            select: { reactions: true },
-          },
-        },
-        orderBy: {
-          reactions: {
-            _count: sortOrder,
-          },
-        },
-        skip: (dto.page - 1) * dto.limit,
-        take: dto.limit,
-      });
+    const data = await this.databaseService.comment.findMany({
+      where,
+      include: {
+        user: true,
+        _count:
+          sortBy === 'popularity'
+            ? {
+                select: { reactions: true },
+              }
+            : undefined,
+      },
+      orderBy: {
+        reactions:
+          sortBy === 'popularity'
+            ? {
+                _count: sortOrder,
+              }
+            : undefined,
+        createdAt: sortBy === 'date' ? sortOrder : undefined,
+      },
+      skip: (dto.page - 1) * dto.limit,
+      take: dto.limit,
+    });
 
-      const count = await this.databaseService.comment.count({ where });
+    const count = await this.databaseService.comment.count({ where });
 
-      return new PaginatedComment(data, count, dto);
-    } else {
-      const data = await this.databaseService.comment.findMany({
-        where,
-        include: {
-          user: true,
-        },
-        orderBy: {
-          createdAt: sortOrder,
-        },
-        skip: (dto.page - 1) * dto.limit,
-        take: dto.limit,
-      });
-
-      const count = await this.databaseService.comment.count({ where });
-
-      return new PaginatedComment(data, count, dto);
-    }
+    return new PaginatedComment(data, count, dto);
   }
 }

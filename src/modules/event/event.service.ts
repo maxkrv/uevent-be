@@ -304,6 +304,14 @@ export class EventService {
     if (userId) where.creatorId = userId;
 
     if (dto.lat !== undefined && dto.lng !== undefined) {
+      console.log(
+        'dto.radius',
+        dto.radius,
+        'dto.lat',
+        dto.lat,
+        'dto.lng',
+        dto.lng,
+      );
       const latDeg = dto.radius / KILOMETERS_IN_DEGREE;
       const lngDeg =
         dto.radius / (KILOMETERS_IN_DEGREE * Math.cos(this.toRad(dto.lat)));

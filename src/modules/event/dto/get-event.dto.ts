@@ -87,7 +87,7 @@ export class GetEventDto {
   })
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => (value ? Number(value) : undefined))
+  @Transform(({ value }) => Number(value))
   lat?: number;
 
   @ApiProperty({
@@ -96,7 +96,7 @@ export class GetEventDto {
   })
   @IsOptional()
   @IsNumber()
-  @Transform(({ value }) => (value ? Number(value) : undefined))
+  @Transform(({ value }) => Number(value))
   lng?: number;
 
   @ApiProperty({
@@ -107,8 +107,6 @@ export class GetEventDto {
   @IsOptional()
   @Max(30)
   @IsNumber()
-  @Transform(({ value }) =>
-    value ? Number(value) : DEFAULT_EVENTS_SEARCH_RADIUS,
-  )
-  radius: number;
+  @Transform(({ value }) => Number(value))
+  radius: number = DEFAULT_EVENTS_SEARCH_RADIUS;
 }

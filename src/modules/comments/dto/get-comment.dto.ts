@@ -37,6 +37,11 @@ export class GetCommentDto extends IntersectionType(PaginationOptionsDto) {
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc';
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
   @AtLeastOneOf(['eventId', 'companyNewsId', 'parentId'], {
     message:
       'At least one of eventId, companyNewsId, or parentId must be provided',
