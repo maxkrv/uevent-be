@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Success } from '@/core/auth/dto/success.dto';
 import { DatabaseService } from '@/core/db/database.service';
 import { FileUploadService } from '@/core/file-upload/file-upload.service';
+import { NotificationService } from '@/modules/notifications/notification.service';
 import { PaginationOptionsDto } from '@/shared/pagination';
 
 import { PaginatedCompanyNewsEntity } from './company-news.entity';
@@ -14,6 +15,7 @@ export class CompanyNewsService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly fileUploadService: FileUploadService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(userId: string, dto: CreateCompanyNewsDto) {
@@ -28,12 +30,20 @@ export class CompanyNewsService {
       throw new NotFoundException('Company not found');
     }
 
-    return this.databaseService.companyNews.create({
+    const news = await this.databaseService.companyNews.create({
       data: dto,
       include: {
         company: true,
       },
     });
+
+    this.notificationService.createNewsNotification(
+      dto.companyId,
+      userId,
+      dto.title,
+    );
+
+    return news;
   }
 
   async update(id: string, dto: UpdateCompanyNewsDto, userId: string) {

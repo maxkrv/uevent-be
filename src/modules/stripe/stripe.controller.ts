@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 import { DatabaseService } from '@/core/db/database.service';
 import { Public } from '@/shared/decorators';
 
+import { NotificationService } from '../notifications/notification.service';
 import { StripeService } from './stripe.service';
 
 @Controller('stripe')
@@ -19,6 +20,7 @@ export class StripeController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly databaseService: DatabaseService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   @Public()
@@ -113,6 +115,16 @@ export class StripeController {
             },
           });
         });
+
+        this.notificationService.createEventPurchaseNotification(
+          metadata.userId,
+          metadata.eventId,
+        );
+
+        this.notificationService.notifyEventCreatorOnNewAttendee(
+          metadata.eventId,
+          metadata.userId,
+        );
       }
       case 'promotion_code.updated': {
         const promoId = event.data.object.id;

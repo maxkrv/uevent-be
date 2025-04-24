@@ -12,6 +12,7 @@ import { UrlResponse } from '@/core/auth/dto/url.dto';
 import { DatabaseService } from '@/core/db/database.service';
 
 import { FileUploadService } from '../../core/file-upload/file-upload.service';
+import { NotificationService } from '../notifications/notification.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAtendeesDto } from './dto/get-atendees.dto';
@@ -26,6 +27,7 @@ export class EventService {
     private readonly databaseService: DatabaseService,
     private readonly fileUploadService: FileUploadService,
     private readonly stripeService: StripeService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private readonly include: Prisma.EventInclude = {
@@ -122,6 +124,13 @@ export class EventService {
         },
       });
 
+      this.notificationService.createEventNotification(
+        dto.companyId,
+        userId,
+        dto.title,
+        data.id,
+      );
+
       return data;
     });
   }
@@ -133,20 +142,12 @@ export class EventService {
     });
 
     if (!event) {
-      throw new NotFoundException('Event not found');
+      throw new Error('Event not found');
     }
 
-    if (event.creatorId !== userId) {
-      throw new ForbiddenException(
-        'You do not have permission to update this event',
-      );
-    }
-
-    const shouldRemoveLocation =
-      'eventLocation' in dto ? dto.location === null : !!event.location;
-
+    const shouldRemoveLocation = dto.location === null;
     const shouldUpsertLocation =
-      'eventLocation' in dto && dto.location !== null;
+      dto.location !== undefined && dto.location !== null;
 
     const eventLocationAction = shouldRemoveLocation
       ? { delete: true }
@@ -173,7 +174,7 @@ export class EventService {
 
     const { themes, ...rest } = dto;
 
-    return this.databaseService.event.update({
+    const updatedEvent = await this.databaseService.event.update({
       where: {
         id,
         creatorId: userId,
@@ -190,6 +191,14 @@ export class EventService {
         company: true,
       },
     });
+
+    this.notificationService.createEventUpdateNotification(
+      id,
+      userId,
+      dto.title,
+    );
+
+    return updatedEvent;
   }
 
   async updatePoster(id: string, userId: string, file: Express.Multer.File) {
@@ -287,7 +296,10 @@ export class EventService {
   async delete(id: string, userId: string) {
     const event = await this.databaseService.event.findUnique({
       where: { id },
-      include: { creator: true },
+      include: {
+        creator: true,
+        company: true,
+      },
     });
 
     if (!event) {
@@ -300,12 +312,16 @@ export class EventService {
       );
     }
 
+    await this.notificationService.createEventDeletionNotification(
+      id,
+      event.title,
+      event.company.name,
+      userId,
+    );
+
     return this.databaseService.event
       .delete({
-        where: {
-          id,
-          creatorId: userId,
-        },
+        where: { id },
         include: this.include,
       })
       .catch(() => {

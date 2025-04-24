@@ -8,13 +8,17 @@ import {
 import { DatabaseService } from '@/core/db/database.service';
 
 import { PaginatedComment } from '../comments/comment.entity';
+import { NotificationService } from '../notifications/notification.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { GetCommentDto } from './dto/get-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @Injectable()
 export class CommentService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async create(userId: string, dto: CreateCommentDto) {
     if (!dto.eventId && !dto.companyNewsId && !dto.parentId) {
@@ -53,7 +57,7 @@ export class CommentService {
       }
     }
 
-    return this.databaseService.comment.create({
+    const comment = await this.databaseService.comment.create({
       data: {
         ...dto,
         userId,
@@ -62,6 +66,26 @@ export class CommentService {
         user: true,
       },
     });
+
+    if (dto.parentId) {
+      const parentComment = await this.databaseService.comment.findUnique({
+        where: { id: dto.parentId },
+        select: {
+          userId: true,
+        },
+      });
+
+      if (parentComment && parentComment.userId !== userId) {
+        this.notificationService.createCommentReplyNotification({
+          recipientId: parentComment.userId,
+          senderId: userId,
+          commentContent: dto.content,
+          commentId: dto.parentId,
+        });
+      }
+    }
+
+    return comment;
   }
 
   async update(id: string, dto: UpdateCommentDto, userId: string) {
