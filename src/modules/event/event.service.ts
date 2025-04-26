@@ -17,9 +17,11 @@ import { StripeService } from '../stripe/stripe.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAtendeesDto } from './dto/get-atendees.dto';
 import { GetEventDto } from './dto/get-event.dto';
+import { GetEventSubscriptionDto } from './dto/get-event-subscription.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PaginatedEvent } from './entities/event.entity';
 import { PaginatedEventAtendees } from './entities/event-atendees.entity';
+import { PaginatedEventSubscription } from './entities/event-subscriptions.entity';
 
 @Injectable()
 export class EventService {
@@ -276,6 +278,32 @@ export class EventService {
     });
 
     return new PaginatedEvent(data, count, dto);
+  }
+
+  async findAllSubscriptionsByUserId(
+    userId: string,
+    dto: GetEventSubscriptionDto,
+  ) {
+    const data = await this.databaseService.eventSubscription.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        event: {
+          include: this.include,
+        },
+      },
+      skip: (dto.page - 1) * dto.limit,
+      take: dto.limit,
+    });
+
+    const count = await this.databaseService.eventSubscription.count({
+      where: {
+        userId,
+      },
+    });
+
+    return new PaginatedEventSubscription(data, count, dto);
   }
 
   async findById(id: string) {

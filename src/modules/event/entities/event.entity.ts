@@ -8,7 +8,7 @@ import {
 } from 'class-transformer';
 
 import { BaseEntity } from '@/common/base/base.entity';
-import { CompanyDescription } from '@/modules/company/company.entity';
+import { CompanyDescription } from '@/modules/company/entities/company.entity';
 import { LocationDto } from '@/shared/dto/location.dto';
 import { Paginated } from '@/shared/pagination';
 

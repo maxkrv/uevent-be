@@ -37,7 +37,6 @@ import { GetCurrentUser, Public } from '@/shared/decorators';
 import { IDDto } from '@/shared/dto';
 import { PaginationOptionsDto } from '@/shared/pagination';
 
-import { CompanyEntity, PaginatedCompany } from './company.entity';
 import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import {
@@ -45,8 +44,14 @@ import {
   PromoCodeQueryDto,
 } from './dto/create-promo-code.dto';
 import { GetCompanyDto } from './dto/get-company.dto';
+import { GetCompanySubscriptionDto } from './dto/get-company-subscription.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { PaginatedPromoCode, PromoCodeEntity } from './promo-code.entity';
+import { CompanyEntity, PaginatedCompany } from './entities/company.entity';
+import { PaginatedCompanySubscription } from './entities/company-subscrtiptions.entity';
+import {
+  PaginatedPromoCode,
+  PromoCodeEntity,
+} from './entities/promo-code.entity';
 
 @Controller(Prefix.COMPANIES)
 export class CompanyController {
@@ -88,6 +93,16 @@ export class CompanyController {
     @Query() dto: GetCompanyDto,
   ) {
     return this.companyService.findAllByUserId(sub, dto);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: PaginatedCompanySubscription, isArray: true })
+  @Get('subscriptions')
+  async findMySubscriptions(
+    @GetCurrentUser() { sub }: JwtPayload,
+    @Query() dto: GetCompanySubscriptionDto,
+  ) {
+    return this.companyService.findAllSubscriptionsByUserId(sub, dto);
   }
 
   @Public()
