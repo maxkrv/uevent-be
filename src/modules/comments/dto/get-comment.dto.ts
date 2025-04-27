@@ -14,7 +14,7 @@ export class GetCommentDto extends IntersectionType(PaginationOptionsDto) {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  companyNewsId?: string;
+  newsId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -42,7 +42,7 @@ export class GetCommentDto extends IntersectionType(PaginationOptionsDto) {
   @IsString()
   userId?: string;
 
-  @AtLeastOneOf(['eventId', 'companyNewsId', 'parentId'], {
+  @AtLeastOneOf(['eventId', 'newsId', 'parentId'], {
     message:
       'At least one of eventId, companyNewsId, or parentId must be provided',
   })

@@ -6,6 +6,6 @@ export class UpdateCommentDto extends PartialType(
   OmitType(CreateCommentDto, [
     'parentId',
     'eventId',
-    'companyNewsId' as const,
+    'newsId' as const,
   ] as const),
 ) {}

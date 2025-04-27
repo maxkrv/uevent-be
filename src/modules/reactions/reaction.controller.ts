@@ -49,6 +49,6 @@ export class ReactionController {
   @ApiOkResponse({ type: ReactionEntity })
   @Delete(':id')
   async delete(@Param() { id }: IDDto, @GetCurrentUser() { sub }: JwtPayload) {
-    return new ReactionEntity(await this.reactionService.delete(id, sub));
+    return new ReactionEntity(await this.reactionService.delete(sub, id));
   }
 }

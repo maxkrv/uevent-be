@@ -9,6 +9,7 @@ export enum Prefix {
   EVENTS = 'events',
   COMMENTS = 'comments',
   REACTIONS = 'reactions',
+  NOTIFICATIONS = 'notifications',
   AUTH_GOOGLE = 'auth/google',
 }
 

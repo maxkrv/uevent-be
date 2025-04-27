@@ -39,9 +39,11 @@ import {
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAtendeesDto } from './dto/get-atendees.dto';
 import { GetEventDto } from './dto/get-event.dto';
+import { GetEventSubscriptionDto } from './dto/get-event-subscription.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventEntity, PaginatedEvent } from './entities/event.entity';
 import { PaginatedEventAtendees } from './entities/event-atendees.entity';
+import { PaginatedEventSubscription } from './entities/event-subscriptions.entity';
 import { EventService } from './event.service';
 
 @Controller(Prefix.EVENTS)
@@ -121,6 +123,16 @@ export class EventController {
     @Query() dto: GetEventDto,
   ) {
     return this.eventService.findAll(dto, sub);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: PaginatedEventSubscription, isArray: true })
+  @Get('subscriptions')
+  async findMySubscriptions(
+    @GetCurrentUser() { sub }: JwtPayload,
+    @Query() dto: GetEventSubscriptionDto,
+  ) {
+    return this.eventService.findAllSubscriptionsByUserId(sub, dto);
   }
 
   @Public()

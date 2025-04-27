@@ -342,8 +342,6 @@ model Comment {
     replyTo       Comment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
     reactions     Reaction[]
 
-    @@unique([companyNewsId, userId])
-    @@unique([eventId, userId])
     @@index([eventId])
     @@index([userId])
     @@map("comments")
@@ -362,7 +360,6 @@ model Reaction {
     news    CompanyNews? @relation(fields: [newsId], references: [id], onDelete: Cascade)
     user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@unique([commentId, userId])
     @@index([commentId])
     @@index([userId])
     @@map("reactions")

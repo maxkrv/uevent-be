@@ -57,7 +57,7 @@ export class CommentController {
   @ApiOkResponse({ type: CommentEntity })
   @Delete(':id')
   async delete(@Param() { id }: IDDto, @GetCurrentUser() { sub }: JwtPayload) {
-    return new CommentEntity(await this.commentService.delete(id, sub));
+    return new CommentEntity(await this.commentService.delete(sub, id));
   }
 
   @ApiOkResponse({ type: PaginatedComment, isArray: true })

@@ -13,12 +13,14 @@ import { FileUploadService } from '@/core/file-upload/file-upload.service';
 import { PaginationOptionsDto } from '@/shared/pagination';
 
 import { StripeService } from '../stripe/stripe.service';
-import { PaginatedCompany } from './company.entity';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { CreatePromoCodeDto } from './dto/create-promo-code.dto';
 import { GetCompanyDto } from './dto/get-company.dto';
+import { GetCompanySubscriptionDto } from './dto/get-company-subscription.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
-import { PaginatedPromoCode } from './promo-code.entity';
+import { PaginatedCompany } from './entities/company.entity';
+import { PaginatedCompanySubscription } from './entities/company-subscrtiptions.entity';
+import { PaginatedPromoCode } from './entities/promo-code.entity';
 
 @Injectable()
 export class CompanyService {
@@ -137,6 +139,32 @@ export class CompanyService {
     });
 
     return new PaginatedCompany(data, count, dto);
+  }
+
+  async findAllSubscriptionsByUserId(
+    userId: string,
+    dto: GetCompanySubscriptionDto,
+  ) {
+    const data = await this.databaseService.companySubscription.findMany({
+      where: {
+        userId,
+      },
+      skip: (dto.page - 1) * dto.limit,
+      take: dto.limit,
+      include: {
+        company: {
+          include: this.include,
+        },
+      },
+    });
+
+    const count = await this.databaseService.companySubscription.count({
+      where: {
+        userId,
+      },
+    });
+
+    return new PaginatedCompanySubscription(data, count, dto);
   }
 
   async findById(id: string) {

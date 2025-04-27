@@ -18,6 +18,9 @@ class PaginationMeta {
 
   @ApiProperty({ example: 1 })
   currentPage: number;
+
+  @ApiProperty({ example: 1 })
+  totalPages: number;
 }
 
 export class Paginated<TData extends object> {
@@ -46,6 +49,7 @@ export class Paginated<TData extends object> {
         totalItemsCount: count,
         itemsPerPage: opt.limit,
         currentPage: opt.page,
+        totalPages: Math.ceil(count / opt.limit),
       },
     };
   }

@@ -21,5 +21,5 @@ export class CreateCommentDto {
   @ApiProperty({ required: false, example: 'cl8d2k3f7000012xj5wl8a2hj' })
   @IsString()
   @IsOptional()
-  companyNewsId?: string;
+  newsId?: string;
 }

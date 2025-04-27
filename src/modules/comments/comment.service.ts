@@ -9,16 +9,26 @@ import { Prisma } from '@prisma/client';
 import { DatabaseService } from '@/core/db/database.service';
 
 import { PaginatedComment } from '../comments/comment.entity';
+import { NotificationService } from '../notifications/notification.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { GetCommentDto } from './dto/get-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
 @Injectable()
 export class CommentService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
+  include: Prisma.CommentInclude = {
+    user: true,
+    _count: {
+      select: { replies: true, reactions: true },
+    },
+  };
   async create(userId: string, dto: CreateCommentDto) {
-    if (!dto.eventId && !dto.companyNewsId && !dto.parentId) {
+    if (!dto.eventId && !dto.newsId && !dto.parentId) {
       throw new BadRequestException(
         'Either eventId or companyNewsId or parentId must be provided',
       );
@@ -34,9 +44,9 @@ export class CommentService {
       }
     }
 
-    if (dto.companyNewsId) {
+    if (dto.newsId) {
       const news = await this.databaseService.companyNews.findUnique({
-        where: { id: dto.companyNewsId },
+        where: { id: dto.newsId },
       });
 
       if (!news) {
@@ -54,15 +64,36 @@ export class CommentService {
       }
     }
 
-    return this.databaseService.comment.create({
+    const comment = await this.databaseService.comment.create({
       data: {
-        ...dto,
+        content: dto.content,
+        eventId: dto.eventId,
+        companyNewsId: dto.newsId,
+        parentId: dto.parentId,
         userId,
       },
-      include: {
-        user: true,
-      },
+      include: this.include,
     });
+
+    if (dto.parentId) {
+      const parentComment = await this.databaseService.comment.findUnique({
+        where: { id: dto.parentId },
+        select: {
+          userId: true,
+        },
+      });
+
+      if (parentComment && parentComment.userId !== userId) {
+        this.notificationService.createCommentReplyNotification({
+          recipientId: parentComment.userId,
+          senderId: userId,
+          commentContent: dto.content,
+          commentId: dto.parentId,
+        });
+      }
+    }
+
+    return comment;
   }
 
   async update(id: string, dto: UpdateCommentDto, userId: string) {
@@ -87,9 +118,7 @@ export class CommentService {
       data: {
         ...dto,
       },
-      include: {
-        user: true,
-      },
+      include: this.include,
     });
   }
 
@@ -98,9 +127,7 @@ export class CommentService {
       where: {
         id,
       },
-      include: {
-        user: true,
-      },
+      include: this.include,
     });
 
     if (!data) {
@@ -113,7 +140,6 @@ export class CommentService {
   async delete(userId: string, id: string) {
     const comment = await this.databaseService.comment.findUnique({
       where: { id },
-      include: { user: true },
     });
 
     if (!comment) {
@@ -126,8 +152,9 @@ export class CommentService {
       );
     }
 
-    return this.databaseService.comment.delete({ where: { id } }).catch(() => {
-      throw new NotFoundException('Comment not found');
+    return await this.databaseService.comment.delete({
+      where: { id },
+      include: this.include,
     });
   }
 
@@ -135,7 +162,7 @@ export class CommentService {
     const where: Prisma.CommentWhereInput = {};
 
     if (dto.eventId) where.eventId = dto.eventId;
-    if (dto.companyNewsId) where.companyNewsId = dto.companyNewsId;
+    if (dto.newsId) where.companyNewsId = dto.newsId;
     if (dto.parentId) where.parentId = dto.parentId;
     if (dto.userId) where.userId = dto.userId;
 
@@ -144,15 +171,7 @@ export class CommentService {
 
     const data = await this.databaseService.comment.findMany({
       where,
-      include: {
-        user: true,
-        _count:
-          sortBy === 'popularity'
-            ? {
-                select: { reactions: true },
-              }
-            : undefined,
-      },
+      include: this.include,
       orderBy: {
         reactions:
           sortBy === 'popularity'

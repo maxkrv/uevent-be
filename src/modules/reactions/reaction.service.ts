@@ -27,61 +27,31 @@ export class ReactionService {
       );
     }
 
-    if (dto.commentId) {
-      const commentExists = await this.databaseService.comment.findUnique({
-        where: { id: dto.commentId },
-        select: { id: true },
-      });
+    const existingReaction = await this.databaseService.reaction.findFirst({
+      where: {
+        userId,
+        commentId: dto.commentId,
+        newsId: dto.newsId,
+      },
+    });
 
-      if (!commentExists) {
-        throw new NotFoundException('Comment not found.');
-      }
-
-      return this.databaseService.reaction.upsert({
-        where: {
-          commentId_userId: {
-            commentId: dto.commentId,
-            userId,
-          },
-        },
-        update: {
+    if (existingReaction) {
+      return this.databaseService.reaction.update({
+        where: { id: existingReaction.id },
+        data: {
           type: dto.type,
-        },
-        create: {
-          type: dto.type,
-          commentId: dto.commentId,
-          userId,
         },
       });
     }
 
-    if (dto.newsId) {
-      const newsExists = await this.databaseService.companyNews.findUnique({
-        where: { id: dto.newsId },
-        select: { id: true },
-      });
-
-      if (!newsExists) {
-        throw new NotFoundException('News not found.');
-      }
-
-      return this.databaseService.reaction.upsert({
-        where: {
-          userId: userId,
-          newsId: dto.newsId,
-          commentId: null,
-          commentId_userId: null,
-        },
-        update: {
-          type: dto.type,
-        },
-        create: {
-          type: dto.type,
-          newsId: dto.newsId,
-          userId,
-        },
-      });
-    }
+    return await this.databaseService.reaction.create({
+      data: {
+        userId,
+        type: dto.type,
+        commentId: dto.commentId,
+        newsId: dto.newsId,
+      },
+    });
   }
 
   async getReactionCount(dto: GetReactionDto) {

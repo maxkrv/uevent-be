@@ -13,13 +13,16 @@ import { DatabaseService } from '@/core/db/database.service';
 
 import { FileUploadService } from '../../core/file-upload/file-upload.service';
 import { DEFAULT_ITEMS_LIMIT, DEFAULT_PAGE } from '../../shared/pagination';
+import { NotificationService } from '../notifications/notification.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAtendeesDto } from './dto/get-atendees.dto';
 import { GetEventDto } from './dto/get-event.dto';
+import { GetEventSubscriptionDto } from './dto/get-event-subscription.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PaginatedEvent } from './entities/event.entity';
 import { PaginatedEventAtendees } from './entities/event-atendees.entity';
+import { PaginatedEventSubscription } from './entities/event-subscriptions.entity';
 
 const KILOMETERS_IN_DEGREE = 111.32;
 const DEFAULT_EVENTS_LOACTION_SEARCH_LIMIT = 1000;
@@ -30,11 +33,16 @@ export class EventService {
     private readonly databaseService: DatabaseService,
     private readonly fileUploadService: FileUploadService,
     private readonly stripeService: StripeService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   private readonly include: Prisma.EventInclude = {
     location: true,
-    company: true,
+    company: {
+      include: {
+        location: true,
+      },
+    },
   };
 
   async create(userId: string, dto: CreateEventDto) {
@@ -73,7 +81,7 @@ export class EventService {
             },
           },
           location: {
-            create: location,
+            create: location || undefined,
           },
           creator: {
             connect: {
@@ -126,6 +134,13 @@ export class EventService {
         },
       });
 
+      this.notificationService.createEventNotification(
+        dto.companyId,
+        userId,
+        dto.title,
+        data.id,
+      );
+
       return data;
     });
   }
@@ -137,28 +152,18 @@ export class EventService {
     });
 
     if (!event) {
-      throw new NotFoundException('Event not found');
-    }
-
-    if (event.creatorId !== userId) {
-      throw new ForbiddenException(
-        'You do not have permission to update this event',
-      );
+      throw new Error('Event not found');
     }
 
     const shouldRemoveLocation =
-      'eventLocation' in dto ? dto.location === null : !!event.location;
-
-    const shouldUpsertLocation =
-      'eventLocation' in dto && dto.location !== null;
-
+      dto.location === null && event.location !== null;
     const eventLocationAction = shouldRemoveLocation
       ? { delete: true }
-      : shouldUpsertLocation
+      : dto.location
         ? {
             upsert: {
-              create: { ...dto.location },
-              update: { ...dto.location },
+              create: dto.location,
+              update: dto.location,
             },
           }
         : undefined;
@@ -177,7 +182,7 @@ export class EventService {
 
     const { themes, ...rest } = dto;
 
-    return this.databaseService.event.update({
+    const updatedEvent = await this.databaseService.event.update({
       where: {
         id,
         creatorId: userId,
@@ -191,11 +196,16 @@ export class EventService {
           : undefined,
         location: eventLocationAction,
       },
-      include: {
-        location: true,
-        company: true,
-      },
+      include: this.include,
     });
+
+    this.notificationService.createEventUpdateNotification(
+      id,
+      userId,
+      dto.title,
+    );
+
+    return updatedEvent;
   }
 
   async updatePoster(id: string, userId: string, file: Express.Multer.File) {
@@ -349,6 +359,32 @@ export class EventService {
     return degrees * (Math.PI / 180);
   }
 
+  async findAllSubscriptionsByUserId(
+    userId: string,
+    dto: GetEventSubscriptionDto,
+  ) {
+    const data = await this.databaseService.eventSubscription.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        event: {
+          include: this.include,
+        },
+      },
+      skip: (dto.page - 1) * dto.limit,
+      take: dto.limit,
+    });
+
+    const count = await this.databaseService.eventSubscription.count({
+      where: {
+        userId,
+      },
+    });
+
+    return new PaginatedEventSubscription(data, count, dto);
+  }
+
   async findById(id: string) {
     const data = await this.databaseService.event.findUnique({
       where: {
@@ -367,7 +403,10 @@ export class EventService {
   async delete(id: string, userId: string) {
     const event = await this.databaseService.event.findUnique({
       where: { id },
-      include: { creator: true },
+      include: {
+        creator: true,
+        company: true,
+      },
     });
 
     if (!event) {
@@ -380,17 +419,17 @@ export class EventService {
       );
     }
 
-    return this.databaseService.event
-      .delete({
-        where: {
-          id,
-          creatorId: userId,
-        },
-        include: this.include,
-      })
-      .catch(() => {
-        throw new NotFoundException('Event not found');
-      });
+    await this.notificationService.createEventDeletionNotification(
+      id,
+      event.title,
+      event.company.name,
+      userId,
+    );
+
+    return await this.databaseService.event.delete({
+      where: { id },
+      include: this.include,
+    });
   }
 
   async subscribe(eventId: string, userId: string) {

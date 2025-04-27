@@ -10,7 +10,7 @@ import {
 import { BaseEntity } from '@/common/base/base.entity';
 import { Paginated } from '@/shared/pagination';
 
-import { CompanyEntity } from '../company.entity';
+import { CompanyEntity } from '../entities/company.entity';
 
 class CompanyNewsDescription implements CompanyNews {
   @ApiProperty({ example: '60d21b4667d0d8992e610c85' })
