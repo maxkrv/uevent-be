@@ -34,7 +34,11 @@ export class EventService {
 
   private readonly include: Prisma.EventInclude = {
     location: true,
-    company: true,
+    company: {
+      include: {
+        location: true,
+      },
+    },
   };
 
   async create(userId: string, dto: CreateEventDto) {
@@ -73,7 +77,7 @@ export class EventService {
             },
           },
           location: {
-            create: location,
+            create: location || undefined,
           },
           creator: {
             connect: {
@@ -147,17 +151,15 @@ export class EventService {
       throw new Error('Event not found');
     }
 
-    const shouldRemoveLocation = dto.location === null;
-    const shouldUpsertLocation =
-      dto.location !== undefined && dto.location !== null;
-
+    const shouldRemoveLocation =
+      dto.location === null && event.location !== null;
     const eventLocationAction = shouldRemoveLocation
       ? { delete: true }
-      : shouldUpsertLocation
+      : dto.location
         ? {
             upsert: {
-              create: { ...dto.location },
-              update: { ...dto.location },
+              create: dto.location,
+              update: dto.location,
             },
           }
         : undefined;
@@ -188,10 +190,7 @@ export class EventService {
         },
         location: eventLocationAction,
       },
-      include: {
-        location: true,
-        company: true,
-      },
+      include: this.include,
     });
 
     this.notificationService.createEventUpdateNotification(
@@ -347,14 +346,10 @@ export class EventService {
       userId,
     );
 
-    return this.databaseService.event
-      .delete({
-        where: { id },
-        include: this.include,
-      })
-      .catch(() => {
-        throw new NotFoundException('Event not found');
-      });
+    return await this.databaseService.event.delete({
+      where: { id },
+      include: this.include,
+    });
   }
 
   async subscribe(eventId: string, userId: string) {
