@@ -12,21 +12,29 @@ import { DatabaseService } from '@/core/db/database.service';
 import { FileUploadService } from '@/core/file-upload/file-upload.service';
 import { PaginationOptionsDto } from '@/shared/pagination';
 
+import { KILOMETERS_IN_DEGREE } from '../event/event.service';
 import { StripeService } from '../stripe/stripe.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { CreatePromoCodeDto } from './dto/create-promo-code.dto';
-import { GetCompanyDto } from './dto/get-company.dto';
+import { CompanySortBy, GetCompanyDto } from './dto/get-company.dto';
 import { GetCompanySubscriptionDto } from './dto/get-company-subscription.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { PaginatedCompany } from './entities/company.entity';
 import { PaginatedCompanySubscription } from './entities/company-subscrtiptions.entity';
 import { PaginatedPromoCode } from './entities/promo-code.entity';
 
+const DEFAULT_COMPANY_SEARCH_RADIUS = 50;
 @Injectable()
 export class CompanyService {
   private readonly include: Prisma.CompanyInclude = {
     location: true,
     owner: true,
+    _count: {
+      select: {
+        events: true,
+        subscribers: true,
+      },
+    },
   };
 
   constructor(
@@ -109,14 +117,98 @@ export class CompanyService {
   }
 
   async findAll(dto: GetCompanyDto) {
+    const where = this.buildWhere(dto);
+    const order = this.buildOrder(dto);
+
     const data = await this.databaseService.company.findMany({
       skip: (dto.page - 1) * dto.limit,
       take: dto.limit,
+      where,
+      orderBy: order,
       include: this.include,
     });
-    const count = await this.databaseService.company.count();
+
+    const count = await this.databaseService.company.count({ where });
 
     return new PaginatedCompany(data, count, dto);
+  }
+
+  private buildOrder(dto: GetCompanyDto) {
+    const order: Prisma.CompanyOrderByWithRelationInput = {};
+
+    if (dto.sortBy) {
+      switch (dto.sortBy) {
+        case CompanySortBy.NAME:
+          order.name = 'asc';
+          break;
+        case CompanySortBy.EVENTS:
+          order.events = {
+            _count: 'desc',
+          };
+          break;
+        case CompanySortBy.NEWEST:
+          order.createdAt = 'desc';
+          break;
+        case CompanySortBy.OLDEST:
+          order.createdAt = 'asc';
+          break;
+        default:
+          order.createdAt = 'desc';
+          break;
+      }
+    }
+    return order;
+  }
+
+  private buildWhere(dto: GetCompanyDto): Prisma.CompanyWhereInput {
+    const where: Prisma.CompanyWhereInput = { isVerified: dto.isVerified };
+
+    if (dto.search) {
+      where.OR = [
+        {
+          name: {
+            contains: dto.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: dto.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          location: {
+            address: {
+              contains: dto.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      const latDeg = DEFAULT_COMPANY_SEARCH_RADIUS / KILOMETERS_IN_DEGREE;
+      const lngDeg =
+        DEFAULT_COMPANY_SEARCH_RADIUS /
+        (KILOMETERS_IN_DEGREE * Math.cos(this.toRad(dto.lat)));
+
+      where.location = {
+        lat: { gte: dto.lat - latDeg, lte: dto.lat + latDeg },
+        lng: { gte: dto.lng - lngDeg, lte: dto.lng + lngDeg },
+      };
+    }
+
+    return where;
+  }
+
+  private toRad(degrees: number): number {
+    return degrees * (Math.PI / 180);
+  }
+
+  getTotalSubscribers() {
+    return this.databaseService.companySubscription.count();
   }
 
   async findAllByUserId(
@@ -375,7 +467,6 @@ export class CompanyService {
       company.stripeAccountId,
     );
 
-    console.log('🚀 ~ CompanyService ~ dto.discount:', dto.discount);
     const data = await this.databaseService.promoCode.create({
       data: {
         code,

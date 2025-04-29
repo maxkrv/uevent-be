@@ -44,10 +44,9 @@ import {
   PromoCodeQueryDto,
 } from './dto/create-promo-code.dto';
 import { GetCompanyDto } from './dto/get-company.dto';
-import { GetCompanySubscriptionDto } from './dto/get-company-subscription.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { CompanyEntity, PaginatedCompany } from './entities/company.entity';
-import { PaginatedCompanySubscription } from './entities/company-subscrtiptions.entity';
+import { CompanySubscriptionsCount } from './entities/company-subscriptions-count';
 import {
   PaginatedPromoCode,
   PromoCodeEntity,
@@ -85,6 +84,15 @@ export class CompanyController {
     return this.companyService.findAll(dto);
   }
 
+  @Public()
+  @ApiOkResponse({ type: CompanySubscriptionsCount })
+  @Get('subscriptions/count')
+  async getTotalSubscribersCount() {
+    return new CompanySubscriptionsCount(
+      await this.companyService.getTotalSubscribers(),
+    );
+  }
+
   @ApiBearerAuth()
   @ApiOkResponse({ type: PaginatedCompany, isArray: true })
   @Get('my')
@@ -93,16 +101,6 @@ export class CompanyController {
     @Query() dto: GetCompanyDto,
   ) {
     return this.companyService.findAllByUserId(sub, dto);
-  }
-
-  @ApiBearerAuth()
-  @ApiOkResponse({ type: PaginatedCompanySubscription, isArray: true })
-  @Get('subscriptions')
-  async findMySubscriptions(
-    @GetCurrentUser() { sub }: JwtPayload,
-    @Query() dto: GetCompanySubscriptionDto,
-  ) {
-    return this.companyService.findAllSubscriptionsByUserId(sub, dto);
   }
 
   @Public()

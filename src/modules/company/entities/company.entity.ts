@@ -1,4 +1,8 @@
-import { ApiProperty, IntersectionType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  IntersectionType,
+} from '@nestjs/swagger';
 import { Company } from '@prisma/client';
 import {
   ClassTransformOptions,
@@ -69,6 +73,11 @@ export class CompanyEntity
   extends IntersectionType(CompanyDescription, CompanyRelations)
   implements BaseEntity
 {
+  @ApiPropertyOptional()
+  _count?: {
+    events?: number;
+    subscribers?: number;
+  };
   constructor(data: Company, options?: ClassTransformOptions) {
     super();
     plainToClassFromExist(this, data, options);

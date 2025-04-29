@@ -46,8 +46,6 @@ class EventDescription implements Event {
   showAttendeeList: boolean;
   @ApiProperty({ example: false })
   notifyOnNewAttendee: boolean;
-  @ApiProperty({ example: 'https://example.com/thank-you' })
-  redirectUrl: string;
   @ApiProperty({
     enum: EventFormatType,
   })

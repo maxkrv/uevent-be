@@ -12,6 +12,7 @@ import { UrlResponse } from '@/core/auth/dto/url.dto';
 import { DatabaseService } from '@/core/db/database.service';
 
 import { FileUploadService } from '../../core/file-upload/file-upload.service';
+import { PaginatedUsers } from '../../core/user/entities/user.entity';
 import { DEFAULT_ITEMS_LIMIT, DEFAULT_PAGE } from '../../shared/pagination';
 import { NotificationService } from '../notifications/notification.service';
 import { StripeService } from '../stripe/stripe.service';
@@ -21,10 +22,9 @@ import { GetEventDto } from './dto/get-event.dto';
 import { GetEventSubscriptionDto } from './dto/get-event-subscription.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PaginatedEvent } from './entities/event.entity';
-import { PaginatedEventAtendees } from './entities/event-atendees.entity';
 import { PaginatedEventSubscription } from './entities/event-subscriptions.entity';
 
-const KILOMETERS_IN_DEGREE = 111.32;
+export const KILOMETERS_IN_DEGREE = 111.32;
 const DEFAULT_EVENTS_LOACTION_SEARCH_LIMIT = 1000;
 
 @Injectable()
@@ -42,6 +42,12 @@ export class EventService {
     company: {
       include: {
         location: true,
+        _count: {
+          select: {
+            events: true,
+            subscribers: true,
+          },
+        },
       },
     },
   };
@@ -486,7 +492,6 @@ export class EventService {
       where: { id },
       include: { company: true },
     });
-    console.log('🚀 ~ EventService ~ purchase ~ event:', event);
 
     if (!event) {
       throw new NotFoundException('Event not found');
@@ -535,7 +540,7 @@ export class EventService {
   async getAttendees(
     eventId: string,
     dto: GetAtendeesDto,
-  ): Promise<PaginatedEventAtendees> {
+  ): Promise<PaginatedUsers> {
     const event = await this.databaseService.event.findUnique({
       where: { id: eventId },
     });
@@ -543,44 +548,34 @@ export class EventService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
-
-    const data = await this.databaseService.eventAttendee.findMany({
-      where: {
-        eventId: eventId,
-        user: {
-          settings: {
-            showInAttendeeList: true,
-          },
-          ...(dto.search && {
-            name: {
-              contains: dto.search,
-              mode: 'insensitive',
-            },
-          }),
+    const where: Prisma.UserWhereInput = {
+      attendingEvents: {
+        some: {
+          eventId: eventId,
         },
       },
+      settings: {
+        showInAttendeeList: true,
+      },
+      ...(dto.search && {
+        name: {
+          contains: dto.search,
+          mode: 'insensitive',
+        },
+      }),
+    };
+
+    const data = await this.databaseService.user.findMany({
+      where,
       skip: (dto.page - 1) * dto.limit,
       take: dto.limit,
     });
 
-    const count = await this.databaseService.eventAttendee.count({
-      where: {
-        eventId: eventId,
-        user: {
-          settings: {
-            showInAttendeeList: true,
-          },
-          ...(dto.search && {
-            name: {
-              contains: dto.search,
-              mode: 'insensitive',
-            },
-          }),
-        },
-      },
+    const count = await this.databaseService.user.count({
+      where,
     });
 
-    return new PaginatedEventAtendees(data, count, dto);
+    return new PaginatedUsers(data, count, dto);
   }
 
   async getAttendeesCount(eventId: string) {

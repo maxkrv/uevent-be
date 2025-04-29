@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { CompanySubscriptionEntity } from '../../modules/company/entities/company-subscrtiptions.entity';
+import { EventSubscriptionEntity } from '../../modules/event/entities/event-subscriptions.entity';
 import { DatabaseService } from '../db/database.service';
 import { FileUploadService } from '../file-upload/file-upload.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -26,6 +28,50 @@ export class UserService {
     });
   }
 
+  async findMyEventsSubscriptions(
+    userId: string,
+  ): Promise<EventSubscriptionEntity[]> {
+    const subscriptions = await this.databaseService.eventSubscription.findMany(
+      {
+        where: {
+          userId,
+        },
+        include: {
+          event: {
+            include: {
+              location: true,
+              company: true,
+            },
+          },
+        },
+      },
+    );
+    return subscriptions.map((sub) => new EventSubscriptionEntity(sub));
+  }
+  async findMyCompaniesSubscriptions(
+    userId: string,
+  ): Promise<CompanySubscriptionEntity[]> {
+    const subscriptions =
+      await this.databaseService.companySubscription.findMany({
+        where: {
+          userId,
+        },
+        include: {
+          company: {
+            include: {
+              location: true,
+              _count: {
+                select: {
+                  events: true,
+                  subscribers: true,
+                },
+              },
+            },
+          },
+        },
+      });
+    return subscriptions.map((sub) => new CompanySubscriptionEntity(sub));
+  }
   async getById(userId: string) {
     return this.databaseService.user.findUnique({
       where: {

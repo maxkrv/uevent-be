@@ -71,7 +71,6 @@ export class StripeController {
       case 'checkout.session.completed': {
         const isPaid = event.data.object.payment_status === 'paid';
         const metadata = event.data.object.metadata;
-        console.log('🚀 ~ StripeController ~ metadata:', metadata);
 
         if (!metadata.eventId || !metadata.userId) {
           throw new BadRequestException('Missing metadata properties');
@@ -86,7 +85,6 @@ export class StripeController {
             id: metadata.eventId,
           },
         });
-        console.log('🚀 ~ StripeController ~ eventData:', eventData);
 
         if (!eventData) {
           throw new BadRequestException('eventData not found');
@@ -100,10 +98,6 @@ export class StripeController {
                 eventId: metadata.eventId,
               },
             });
-            console.log(
-              '🚀 ~ StripeController ~ awaitthis.databaseService.$transaction ~ attendee:',
-              attendee,
-            );
 
             const ticket = await prisma.ticket.create({
               data: {
@@ -122,8 +116,7 @@ export class StripeController {
               },
             });
           })
-          .catch((e) => {
-            console.log('🚀 ~ StripeController ~ e:', e);
+          .catch(() => {
             throw new BadRequestException('Transaction failed');
           });
 

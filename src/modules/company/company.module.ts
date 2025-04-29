@@ -12,6 +12,7 @@ import { CompanyNewsModule } from './company-news/company-news.module';
 @Module({
   controllers: [CompanyController],
   providers: [CompanyService],
+  exports: [CompanyService],
   imports: [
     CompanyNewsModule,
     DatabaseModule,

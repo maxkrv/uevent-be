@@ -36,14 +36,12 @@ import {
   IMG_ALLOWED_TYPES,
   IMG_MAX_SIZE,
 } from '../../core/file-upload/file-upload.contsants';
+import { PaginatedUsers } from '../../core/user/entities/user.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { GetAtendeesDto } from './dto/get-atendees.dto';
 import { GetEventDto } from './dto/get-event.dto';
-import { GetEventSubscriptionDto } from './dto/get-event-subscription.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventEntity, PaginatedEvent } from './entities/event.entity';
-import { PaginatedEventAtendees } from './entities/event-atendees.entity';
-import { PaginatedEventSubscription } from './entities/event-subscriptions.entity';
 import { EventService } from './event.service';
 
 @Controller(Prefix.EVENTS)
@@ -115,26 +113,6 @@ export class EventController {
     return this.eventService.findAll(dto);
   }
 
-  @ApiBearerAuth()
-  @ApiOkResponse({ type: PaginatedEvent, isArray: true })
-  @Get('my')
-  async findMy(
-    @GetCurrentUser() { sub }: JwtPayload,
-    @Query() dto: GetEventDto,
-  ) {
-    return this.eventService.findAll(dto, sub);
-  }
-
-  @ApiBearerAuth()
-  @ApiOkResponse({ type: PaginatedEventSubscription, isArray: true })
-  @Get('subscriptions')
-  async findMySubscriptions(
-    @GetCurrentUser() { sub }: JwtPayload,
-    @Query() dto: GetEventSubscriptionDto,
-  ) {
-    return this.eventService.findAllSubscriptionsByUserId(sub, dto);
-  }
-
   @Public()
   @ApiOkResponse({ type: EventEntity })
   @Get(':id')
@@ -180,7 +158,7 @@ export class EventController {
   }
 
   @Public()
-  @ApiOkResponse({ type: PaginatedEventAtendees, isArray: true })
+  @ApiOkResponse({ type: PaginatedUsers, isArray: true })
   @Get(':id/attendees')
   async getAttendees(@Param() { id }: IDDto, @Query() dto: GetAtendeesDto) {
     return this.eventService.getAttendees(id, dto);

@@ -90,11 +90,6 @@ export class CreateEventDto {
   @IsBoolean()
   notifyOnNewAttendee?: boolean;
 
-  @ApiProperty({ required: false, example: 'https://example.com/thank-you' })
-  @IsOptional()
-  @IsUrl()
-  redirectUrl?: string;
-
   @ApiProperty({
     required: false,
     enum: EventFormatType,
