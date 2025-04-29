@@ -387,6 +387,7 @@ model Notification {
     type      String   @map("type") // EVENT_REMINDER, TICKET_PURCHASE, NEW_COMMENT, etc.
     title     String   @map("title")
     content   String   @map("content")
+    link      String?  @map("link") // URL to redirect when clicked
     isRead    Boolean  @default(false) @map("is_read")
     createdAt DateTime @default(now()) @map("created_at")
 

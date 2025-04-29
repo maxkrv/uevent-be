@@ -41,6 +41,7 @@ export class CompanyNewsService {
       dto.companyId,
       userId,
       dto.title,
+      news.id,
     );
 
     return news;

@@ -7,18 +7,19 @@ import { TicketStatusType } from '@prisma/client';
 
 import { Success } from '@/core/auth/dto/success.dto';
 import { DatabaseService } from '@/core/db/database.service';
-import { PaginationOptionsDto } from '@/shared/pagination';
 
+import { GetTicketsDto } from './get-tickets.dto';
 import { PaginatedTickets } from './ticket.entity';
 
 @Injectable()
 export class TicketsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async findAll(userId: string, dto: PaginationOptionsDto) {
+  async findAll(userId: string, dto: GetTicketsDto) {
     const data = await this.databaseService.ticket.findMany({
       where: {
         userId,
+        eventId: dto.eventId,
       },
       include: {
         user: true,

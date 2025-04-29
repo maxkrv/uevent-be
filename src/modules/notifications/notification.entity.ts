@@ -2,7 +2,6 @@ import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import { Notification } from '@prisma/client';
 import {
   ClassTransformOptions,
-  Exclude,
   plainToClassFromExist,
   Type,
 } from 'class-transformer';
@@ -26,7 +25,9 @@ class NotificationDescription implements Notification {
   userId: string;
   @ApiProperty({ example: '60d21b4667d0d8992e610c85' })
   sentById: string;
-  @Exclude()
+  @ApiProperty({ example: 'https://example.com', required: false })
+  link: string | undefined;
+  @ApiProperty({ example: new Date().toISOString() })
   createdAt: Date;
 }
 

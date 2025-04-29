@@ -5,8 +5,8 @@ import { Success } from '@/core/auth/dto/success.dto';
 import { JwtPayload } from '@/core/auth/interface/jwt.interface';
 import { GetCurrentUser } from '@/shared/decorators';
 import { IDDto } from '@/shared/dto';
-import { PaginationOptionsDto } from '@/shared/pagination';
 
+import { GetTicketsDto } from './get-tickets.dto';
 import { PaginatedTickets } from './ticket.entity';
 import { TicketsService } from './tickets.service';
 
@@ -14,13 +14,10 @@ import { TicketsService } from './tickets.service';
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
-  @Get()
+  @Get('my')
   @ApiBearerAuth()
   @ApiOkResponse({ type: PaginatedTickets })
-  findAll(
-    @Query() dto: PaginationOptionsDto,
-    @GetCurrentUser() { sub }: JwtPayload,
-  ) {
+  findAll(@Query() dto: GetTicketsDto, @GetCurrentUser() { sub }: JwtPayload) {
     return this.ticketsService.findAll(sub, dto);
   }
 

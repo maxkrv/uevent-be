@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 import CompanyEvent from 'src/emails/company-event';
 import CompanyNews from 'src/emails/company-news';
@@ -23,6 +24,18 @@ export class NotificationService {
     private readonly mailService: MailService,
     private readonly cs: ConfigService,
   ) {}
+  private include: Prisma.NotificationInclude = {
+    sentBy: {
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+      },
+    },
+  };
+  private createLink = (path: string): string => {
+    return new URL(path, this.cs.get('app').clientUrl).toString();
+  };
 
   async findAllByUserId(
     userId: string,
@@ -31,6 +44,10 @@ export class NotificationService {
     const data = await this.databaseService.notification.findMany({
       where: { userId },
       skip: (dto.page - 1) * dto.limit,
+      include: this.include,
+      orderBy: {
+        createdAt: 'desc',
+      },
       take: dto.limit,
     });
 
@@ -58,6 +75,7 @@ export class NotificationService {
 
     return this.databaseService.notification.update({
       where: { id },
+      include: this.include,
       data: dto,
     });
   }
@@ -77,6 +95,7 @@ export class NotificationService {
 
     return this.databaseService.notification
       .delete({
+        include: this.include,
         where: { id },
       })
       .catch(() => {
@@ -88,6 +107,7 @@ export class NotificationService {
     companyId: string,
     sentById: string,
     newsTitle: string,
+    newsId: string,
   ) {
     const company = await this.databaseService.company.findUnique({
       where: { id: companyId },
@@ -121,7 +141,7 @@ export class NotificationService {
           },
         },
       });
-
+    const link = this.createLink(`/companies/${companyId}/news/${newsId}`);
     const notifications = subscriptions
       .filter((sub) =>
         ['IN_APP', 'BOTH'].includes(sub.user.settings?.companyUpdateChannel),
@@ -132,6 +152,7 @@ export class NotificationService {
             type: 'COMPANY_UPDATE',
             title: `${company.name} News`,
             content: `${company.name} just published: "${newsTitle}"`,
+            link,
             userId: sub.user.id,
             sentById,
           },
@@ -149,7 +170,7 @@ export class NotificationService {
             name: sub.user.name,
             companyName: company.name,
             newsTitle,
-            link: `https://yourapp.com/news`,
+            link,
           }),
         }),
       );
@@ -193,7 +214,7 @@ export class NotificationService {
           },
         },
       });
-
+    const link = this.createLink(`/events/${eventId}`);
     const notifications = subscriptions
       .filter((sub) =>
         ['IN_APP', 'BOTH'].includes(sub.user.settings?.companyUpdateChannel),
@@ -205,6 +226,7 @@ export class NotificationService {
             title: `${company.name} Event`,
             content: `${company.name} just published: "${eventTitle}"`,
             userId: sub.user.id,
+            link,
             sentById,
           },
         }),
@@ -221,7 +243,7 @@ export class NotificationService {
             name: sub.user.name,
             companyName: company.name,
             eventTitle,
-            link: `https://yourapp.com/events/${eventId}`,
+            link,
           }),
         }),
       );
@@ -229,22 +251,16 @@ export class NotificationService {
   }
 
   async sendEventReminderNotification() {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const dayStart = new Date(tomorrow);
-    dayStart.setHours(0, 0, 0, 0);
-
-    const dayEnd = new Date(tomorrow);
-    dayEnd.setHours(23, 59, 59, 999);
+    const from = dayjs().startOf('day').add(1, 'day');
+    const to = from.add(1, 'hour').subtract(1, 'minute');
 
     const subscriptions = await this.databaseService.eventSubscription.findMany(
       {
         where: {
           event: {
             startDate: {
-              gte: dayStart,
-              lte: dayEnd,
+              gte: from.toDate(),
+              lte: to.toDate(),
             },
           },
           user: {
@@ -277,7 +293,6 @@ export class NotificationService {
         },
       },
     );
-
     const notifications = subscriptions
       .filter((sub) =>
         ['IN_APP', 'BOTH'].includes(sub.user.settings.eventReminderChannel),
@@ -288,6 +303,7 @@ export class NotificationService {
             type: 'EVENT_REMINDER',
             title: `Reminder: ${sub.event.title}`,
             content: `Don't forget about "${sub.event.title}" tomorrow at ${sub.event.startDate.toLocaleTimeString()}`,
+            link: this.createLink(`/events/${sub.event.id}`),
             userId: sub.user.id,
           },
         }),
@@ -306,7 +322,7 @@ export class NotificationService {
               name: sub.user.name,
               companyName: sub.event.company.name,
               eventTitle: sub.event.title,
-              link: `https://yourapp.com/events/${sub.event.id}`,
+              link: this.createLink(`/events/${sub.event.id}`),
             }),
           }),
         ),
@@ -363,6 +379,7 @@ export class NotificationService {
             title: `${event.company.name} Updated Event`,
             content: `${event.company.name} just updated: "${eventTitle}"`,
             userId: sub.user.id,
+            link: this.createLink(`/events/${eventId}`),
             sentById,
           },
         }),
@@ -380,7 +397,7 @@ export class NotificationService {
             name: sub.user.name,
             companyName: event.company.name,
             eventTitle,
-            link: `https://yourapp.com/events/${eventId}`,
+            link: this.createLink(`/events/${eventId}`),
           }),
         }),
       );
@@ -533,12 +550,13 @@ export class NotificationService {
     const shouldSendEmail = ['EMAIL', 'BOTH'].includes(
       creator.settings?.ticketPurchaseChannel,
     );
-
+    const link = this.createLink(`/events/${eventId}#attendees`);
     const notificationPromise = shouldCreateNotification
       ? this.databaseService.notification.create({
           data: {
             type: 'NEW_EVENT_ATTENDEE',
             title: 'New atendee of the event',
+            link,
             content: `${attendee.name} joined the event "${event.title}"`,
             userId: creator.id,
           },
@@ -553,7 +571,7 @@ export class NotificationService {
             creatorName: creator.name,
             attendeeName: attendee.name,
             eventTitle: event.title,
-            link: `https://yourapp.com/events/${eventId}/attendees`,
+            link,
           }),
         })
       : null;
@@ -588,6 +606,17 @@ export class NotificationService {
 
     if (!recipient || recipient.settings?.newCommentChannel === 'NONE') return;
 
+    const comment = await this.databaseService.comment.findUnique({
+      where: { id: commentId },
+      include: {
+        companyNews: true,
+        event: true,
+      },
+    });
+
+    if (!comment) {
+      throw new Error('Comment not found');
+    }
     const shouldSendInApp = ['IN_APP', 'BOTH'].includes(
       recipient.settings.newCommentChannel,
     );
@@ -595,7 +624,11 @@ export class NotificationService {
     const shouldSendEmail = ['EMAIL', 'BOTH'].includes(
       recipient.settings.newCommentChannel,
     );
-
+    const link = comment.companyNews
+      ? this.createLink(
+          `/companies/${comment.companyNews.companyId}/news/${comment.companyNews.id}#comments`,
+        )
+      : this.createLink(`/events/${comment.event.id}#comments`);
     const notificationPromise = shouldSendInApp
       ? this.databaseService.notification.create({
           data: {
@@ -604,6 +637,7 @@ export class NotificationService {
             content: `Someone replied: "${commentContent}"`,
             userId: recipientId,
             sentById: senderId,
+            link,
           },
         })
       : Promise.resolve();
@@ -615,7 +649,7 @@ export class NotificationService {
           template: await CommentReply({
             name: recipient.name,
             content: commentContent,
-            link: `https://yourapp.com/comments/${commentId}`,
+            link,
           }),
         })
       : Promise.resolve();
